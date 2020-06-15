@@ -21,7 +21,18 @@ ADD_LIBRARY(lzma SHARED
 
 
 # Install library
-install(TARGETS lzma DESTINATION lib)
+#install(TARGETS lzma DESTINATION lib)
 
 # Install library headers
-install(FILES ${HDR_FILES} DESTINATION include)
+#install(FILES ${HDR_FILES} DESTINATION include)
+
+
+target_include_directories(lzma
+    PUBLIC
+        lzma/C/
+)
+
+include(GNUInstallDirs)
+install(DIRECTORY lzma/C/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/lzma/C FILES_MATCHING PATTERN "*.h")
+install(TARGETS lzma LIBRARY DESTINATION lib)
+INCLUDE(CPack)
