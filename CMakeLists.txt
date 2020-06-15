@@ -19,3 +19,9 @@ ADD_LIBRARY(lzma SHARED
     ${HDR_FILES}
 )
 
+
+# Install library
+install(TARGETS lzma DESTINATION lib)
+
+# Install library headers
+install(FILES ${HDR_FILES} DESTINATION include)
