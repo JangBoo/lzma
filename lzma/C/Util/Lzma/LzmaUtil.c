@@ -1,13 +1,11 @@
 /* LzmaUtil.c -- Test application for LZMA compression
-2018-07-04 : Igor Pavlov : Public domain */
+2010-09-20 : Igor Pavlov : Public domain */
 
-#include "../../Precomp.h"
+#define _CRT_SECURE_NO_WARNINGS
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "../../CpuArch.h"
 
 #include "../../Alloc.h"
 #include "../../7zFile.h"
@@ -15,21 +13,24 @@
 #include "../../LzmaDec.h"
 #include "../../LzmaEnc.h"
 
-static const char * const kCantReadMessage = "Can not read input file";
-static const char * const kCantWriteMessage = "Can not write output file";
-static const char * const kCantAllocateMessage = "Can not allocate memory";
-static const char * const kDataErrorMessage = "Data error";
+const char *kCantReadMessage = "Can not read input file";
+const char *kCantWriteMessage = "Can not write output file";
+const char *kCantAllocateMessage = "Can not allocate memory";
+const char *kDataErrorMessage = "Data error";
 
-static void PrintHelp(char *buffer)
+static void *SzAlloc(void *p, size_t size) { p = p; return MyAlloc(size); }
+static void SzFree(void *p, void *address) { p = p; MyFree(address); }
+static ISzAlloc g_Alloc = { SzAlloc, SzFree };
+
+void PrintHelp(char *buffer)
 {
-  strcat(buffer,
-    "\nLZMA-C " MY_VERSION_CPU " : " MY_COPYRIGHT_DATE "\n\n"
-    "Usage:  lzma <e|d> inputFile outputFile\n"
-    "  e: encode file\n"
-    "  d: decode file\n");
+  strcat(buffer, "\nLZMA Utility " MY_VERSION_COPYRIGHT_DATE "\n"
+      "\nUsage:  lzma <e|d> inputFile outputFile\n"
+             "  e: encode file\n"
+             "  d: decode file\n");
 }
 
-static int PrintError(char *buffer, const char *message)
+int PrintError(char *buffer, const char *message)
 {
   strcat(buffer, "\nError: ");
   strcat(buffer, message);
@@ -37,21 +38,19 @@ static int PrintError(char *buffer, const char *message)
   return 1;
 }
 
-static int PrintErrorNumber(char *buffer, SRes val)
+int PrintErrorNumber(char *buffer, SRes val)
 {
   sprintf(buffer + strlen(buffer), "\nError code: %x\n", (unsigned)val);
   return 1;
 }
 
-static int PrintUserError(char *buffer)
+int PrintUserError(char *buffer)
 {
   return PrintError(buffer, "Incorrect command");
 }
 
-
 #define IN_BUF_SIZE (1 << 16)
 #define OUT_BUF_SIZE (1 << 16)
-
 
 static SRes Decode2(CLzmaDec *state, ISeqOutStream *outStream, ISeqInStream *inStream,
     UInt64 unpackSize)
@@ -93,7 +92,7 @@ static SRes Decode2(CLzmaDec *state, ISeqOutStream *outStream, ISeqInStream *inS
         
       outPos = 0;
       
-      if (res != SZ_OK || (thereIsSize && unpackSize == 0))
+      if (res != SZ_OK || thereIsSize && unpackSize == 0)
         return res;
       
       if (inProcessed == 0 && outProcessed == 0)
@@ -105,7 +104,6 @@ static SRes Decode2(CLzmaDec *state, ISeqOutStream *outStream, ISeqInStream *inS
     }
   }
 }
-
 
 static SRes Decode(ISeqOutStream *outStream, ISeqInStream *inStream)
 {
@@ -139,7 +137,7 @@ static SRes Encode(ISeqOutStream *outStream, ISeqInStream *inStream, UInt64 file
   SRes res;
   CLzmaEncProps props;
 
-  UNUSED_VAR(rs);
+  rs = rs;
 
   enc = LzmaEnc_Create(&g_Alloc);
   if (enc == 0)
@@ -169,15 +167,14 @@ static SRes Encode(ISeqOutStream *outStream, ISeqInStream *inStream, UInt64 file
   return res;
 }
 
-
-static int main2(int numArgs, const char *args[], char *rs)
+int main2(int numArgs, const char *args[], char *rs)
 {
   CFileSeqInStream inStream;
   CFileOutStream outStream;
   char c;
   int res;
   int encodeMode;
-  BoolInt useOutFile = False;
+  Bool useOutFile = False;
 
   FileSeqInStream_CreateVTable(&inStream);
   File_Construct(&inStream.file);
@@ -222,11 +219,11 @@ static int main2(int numArgs, const char *args[], char *rs)
   {
     UInt64 fileSize;
     File_GetLength(&inStream.file, &fileSize);
-    res = Encode(&outStream.vt, &inStream.vt, fileSize, rs);
+    res = Encode(&outStream.s, &inStream.s, fileSize, rs);
   }
   else
   {
-    res = Decode(&outStream.vt, useOutFile ? &inStream.vt : NULL);
+    res = Decode(&outStream.s, useOutFile ? &inStream.s : NULL);
   }
 
   if (useOutFile)
@@ -247,7 +244,6 @@ static int main2(int numArgs, const char *args[], char *rs)
   }
   return 0;
 }
-
 
 int MY_CDECL main(int numArgs, const char *args[])
 {

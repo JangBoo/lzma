@@ -44,7 +44,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /Gr /MT /W3 /GX /O1 /I "..\..\..\\" /D "NDEBUG" /D "_MBCS" /D "WIN32" /D "_CONSOLE" /D "_7ZIP_LARGE_PAGES" /D "SUPPORT_DEVICE_FILE" /FAc /Yu"StdAfx.h" /FD /c
+# ADD CPP /nologo /Gz /MT /W3 /GX /O1 /I "..\..\..\\" /D "NDEBUG" /D "_MBCS" /D "WIN32" /D "_CONSOLE" /D "_NO_CRYPTO" /Yu"StdAfx.h" /FD /c
 # ADD BASE RSC /l 0x419 /d "NDEBUG"
 # ADD RSC /l 0x419 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -52,7 +52,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386 /out:"c:\UTIL\7zr.exe" /opt:NOWIN98
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386 /out:"c:\UTIL\7zr.exe" /opt:NOWIN98
 # SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "Alone - Win32 Debug"
@@ -69,7 +69,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /Gr /MDd /W3 /Gm /GX /ZI /Od /I "..\..\..\\" /D "_DEBUG" /D "_MBCS" /D "WIN32" /D "_CONSOLE" /D "_7ZIP_LARGE_PAGES" /D "SUPPORT_DEVICE_FILE" /Yu"StdAfx.h" /FD /GZ /c
+# ADD CPP /nologo /Gz /MDd /W3 /Gm /GX /ZI /Od /I "..\..\..\\" /D "_DEBUG" /D "_MBCS" /D "WIN32" /D "_CONSOLE" /D "_NO_CRYPTO" /Yu"StdAfx.h" /FD /GZ /c
 # ADD BASE RSC /l 0x419 /d "_DEBUG"
 # ADD RSC /l 0x419 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -77,7 +77,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /out:"c:\UTIL\7zr.exe" /pdbtype:sept
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /out:"c:\UTIL\7zr.exe" /pdbtype:sept
 
 !ELSEIF  "$(CFG)" == "Alone - Win32 ReleaseU"
 
@@ -94,7 +94,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MD /W3 /GX /O2 /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "EXCLUDE_COM" /D "NO_REGISTRY" /Yu"StdAfx.h" /FD /c
-# ADD CPP /nologo /Gr /MD /W4 /GX /O1 /I "..\..\..\\" /D "NDEBUG" /D "UNICODE" /D "_UNICODE" /D "WIN32" /D "_CONSOLE" /D "_7ZIP_LARGE_PAGES" /D "SUPPORT_DEVICE_FILE" /Yu"StdAfx.h" /FD /c
+# ADD CPP /nologo /Gz /MD /W4 /GX /O1 /I "..\..\..\\" /D "NDEBUG" /D "UNICODE" /D "_UNICODE" /D "WIN32" /D "_CONSOLE" /D "_NO_CRYPTO" /Yu"StdAfx.h" /FD /c
 # ADD BASE RSC /l 0x419 /d "NDEBUG"
 # ADD RSC /l 0x419 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -103,7 +103,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386 /out:"c:\UTIL\7za.exe" /opt:NOWIN98
 # SUBTRACT BASE LINK32 /pdb:none
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386 /out:"c:\UTIL\7zr.exe" /opt:NOWIN98
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386 /out:"c:\UTIL\7zr.exe" /opt:NOWIN98
 # SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "Alone - Win32 DebugU"
@@ -121,7 +121,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "EXCLUDE_COM" /D "NO_REGISTRY" /D "_MBCS" /Yu"StdAfx.h" /FD /GZ /c
-# ADD CPP /nologo /Gr /MDd /W4 /Gm /GX /ZI /Od /I "..\..\..\\" /D "_DEBUG" /D "_UNICODE" /D "UNICODE" /D "WIN32" /D "_CONSOLE" /D "_7ZIP_LARGE_PAGES" /D "SUPPORT_DEVICE_FILE" /Yu"StdAfx.h" /FD /GZ /c
+# ADD CPP /nologo /Gz /MDd /W4 /Gm /GX /ZI /Od /I "..\..\..\\" /D "_DEBUG" /D "_UNICODE" /D "UNICODE" /D "WIN32" /D "_CONSOLE" /D "_NO_CRYPTO" /Yu"StdAfx.h" /FD /GZ /c
 # ADD BASE RSC /l 0x419 /d "_DEBUG"
 # ADD RSC /l 0x419 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -129,7 +129,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /out:"c:\UTIL\7za.exe" /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /out:"c:\UTIL\7zr.exe" /pdbtype:sept
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /out:"c:\UTIL\7zr.exe" /pdbtype:sept
 
 !ENDIF 
 
@@ -176,14 +176,6 @@ SOURCE=..\..\UI\Console\ExtractCallbackConsole.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\UI\Console\HashCon.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\UI\Console\HashCon.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\UI\Console\List.cpp
 # End Source File
 # Begin Source File
@@ -193,7 +185,6 @@ SOURCE=..\..\UI\Console\List.h
 # Begin Source File
 
 SOURCE=..\..\UI\Console\Main.cpp
-# ADD CPP /D "PROG_VARIANT_R"
 # End Source File
 # Begin Source File
 
@@ -278,10 +269,6 @@ SOURCE=..\..\..\Common\CRC.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\Common\CrcReg.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\Common\Defs.h
 # End Source File
 # Begin Source File
@@ -350,10 +337,6 @@ SOURCE=..\..\..\Common\NewHandler.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\Common\Sha256Reg.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\Common\StdInStream.cpp
 # End Source File
 # Begin Source File
@@ -404,14 +387,6 @@ SOURCE=..\..\..\Common\Wildcard.cpp
 
 SOURCE=..\..\..\Common\Wildcard.h
 # End Source File
-# Begin Source File
-
-SOURCE=..\..\..\Common\XzCrc64Init.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\Common\XzCrc64Reg.cpp
-# End Source File
 # End Group
 # Begin Group "Windows"
 
@@ -434,11 +409,11 @@ SOURCE=..\..\..\Windows\DLL.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\Windows\ErrorMsg.cpp
+SOURCE=..\..\..\Windows\Error.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\Windows\ErrorMsg.h
+SOURCE=..\..\..\Windows\Error.h
 # End Source File
 # Begin Source File
 
@@ -466,10 +441,6 @@ SOURCE=..\..\..\Windows\FileIO.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\Windows\FileLink.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\Windows\FileMapping.h
 # End Source File
 # Begin Source File
@@ -479,14 +450,6 @@ SOURCE=..\..\..\Windows\FileName.cpp
 # Begin Source File
 
 SOURCE=..\..\..\Windows\FileName.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\Windows\FileSystem.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\Windows\FileSystem.h
 # End Source File
 # Begin Source File
 
@@ -510,11 +473,11 @@ SOURCE=..\..\..\Windows\PropVariant.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\Windows\PropVariantConv.cpp
+SOURCE=..\..\..\Windows\PropVariantConversions.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\Windows\PropVariantConv.h
+SOURCE=..\..\..\Windows\PropVariantConversions.h
 # End Source File
 # Begin Source File
 
@@ -538,11 +501,11 @@ SOURCE=..\..\..\Windows\Thread.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\Windows\TimeUtils.cpp
+SOURCE=..\..\..\Windows\Time.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\Windows\TimeUtils.h
+SOURCE=..\..\..\Windows\Time.h
 # End Source File
 # End Group
 # Begin Group "7zip Common"
@@ -555,6 +518,14 @@ SOURCE=..\..\Common\CreateCoder.cpp
 # Begin Source File
 
 SOURCE=..\..\Common\CreateCoder.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Archive\Common\CrossThreadProgress.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Archive\Common\CrossThreadProgress.h
 # End Source File
 # Begin Source File
 
@@ -662,10 +633,6 @@ SOURCE=..\..\Common\ProgressUtils.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\Common\PropId.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\Common\RegisterArc.h
 # End Source File
 # Begin Source File
@@ -695,14 +662,6 @@ SOURCE=..\..\Common\StreamUtils.cpp
 # Begin Source File
 
 SOURCE=..\..\Common\StreamUtils.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\Common\UniqBlocks.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\Common\UniqBlocks.h
 # End Source File
 # Begin Source File
 
@@ -739,6 +698,14 @@ SOURCE=..\..\Compress\BcjCoder.h
 # Begin Source File
 
 SOURCE=..\..\Compress\BcjRegister.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Compress\BranchCoder.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Compress\BranchCoder.h
 # End Source File
 # Begin Source File
 
@@ -818,19 +785,19 @@ SOURCE=..\..\Compress\LzmaRegister.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\Compress\XzDecoder.cpp
+SOURCE=..\..\Compress\RangeCoder.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\Compress\XzDecoder.h
+SOURCE=..\..\Compress\RangeCoderBit.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\Compress\XzEncoder.cpp
+SOURCE=..\..\Compress\RangeCoderBitTree.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\Compress\XzEncoder.h
+SOURCE=..\..\Compress\RangeCoderOpt.h
 # End Source File
 # End Group
 # Begin Group "Archive"
@@ -874,6 +841,14 @@ SOURCE=..\..\Archive\7z\7zFolderInStream.cpp
 # Begin Source File
 
 SOURCE=..\..\Archive\7z\7zFolderInStream.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Archive\7z\7zFolderOutStream.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Archive\7z\7zFolderOutStream.h
 # End Source File
 # Begin Source File
 
@@ -957,6 +932,14 @@ SOURCE=..\..\Archive\Common\CoderMixer2.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\Archive\Common\CoderMixer2MT.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Archive\Common\CoderMixer2MT.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\Archive\Common\DummyOutStream.cpp
 # End Source File
 # Begin Source File
@@ -1012,10 +995,6 @@ SOURCE=..\..\Archive\Common\ParseProperties.cpp
 SOURCE=..\..\Archive\Common\ParseProperties.h
 # End Source File
 # End Group
-# Begin Source File
-
-SOURCE=..\..\Archive\IArchive.h
-# End Source File
 # Begin Source File
 
 SOURCE=..\..\Archive\LzmaHandler.cpp
@@ -1095,14 +1074,6 @@ SOURCE=..\..\UI\Common\ExtractingFilePath.cpp
 # Begin Source File
 
 SOURCE=..\..\UI\Common\ExtractingFilePath.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\UI\Common\HashCalc.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\UI\Common\HashCalc.h
 # End Source File
 # Begin Source File
 
@@ -1195,6 +1166,14 @@ SOURCE=..\..\UI\Common\UpdateProduce.cpp
 # Begin Source File
 
 SOURCE=..\..\UI\Common\UpdateProduce.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\UI\Common\WorkDir.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\UI\Common\WorkDir.h
 # End Source File
 # End Group
 # Begin Group "7-zip"
@@ -1317,30 +1296,6 @@ SOURCE=..\..\..\..\C\XzCrc64.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\..\C\XzCrc64Opt.c
-
-!IF  "$(CFG)" == "Alone - Win32 Release"
-
-# ADD CPP /O2
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 Debug"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 ReleaseU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 DebugU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\..\C\XzDec.c
 
 !IF  "$(CFG)" == "Alone - Win32 Release"
@@ -1457,116 +1412,12 @@ SOURCE=..\..\..\..\C\7zStream.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\..\C\Aes.c
-
-!IF  "$(CFG)" == "Alone - Win32 Release"
-
-# ADD CPP /O2
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 Debug"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 ReleaseU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 DebugU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\..\C\Aes.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\..\C\AesOpt.c
-
-!IF  "$(CFG)" == "Alone - Win32 Release"
-
-# ADD CPP /O2
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 Debug"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 ReleaseU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 DebugU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\..\C\Alloc.c
 # SUBTRACT CPP /YX /Yc /Yu
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\..\..\C\Alloc.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\..\C\Bcj2.c
-
-!IF  "$(CFG)" == "Alone - Win32 Release"
-
-# ADD CPP /O2
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 Debug"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 ReleaseU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 DebugU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\..\C\Bcj2.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\..\C\Bcj2Enc.c
-
-!IF  "$(CFG)" == "Alone - Win32 Release"
-
-# ADD CPP /O2
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 Debug"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 ReleaseU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 DebugU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -1646,15 +1497,6 @@ SOURCE=..\..\..\..\C\Delta.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\..\C\DllSecur.c
-# SUBTRACT CPP /YX /Yc /Yu
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\..\C\DllSecur.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\..\C\IStream.h
 # End Source File
 # Begin Source File
@@ -1710,34 +1552,6 @@ SOURCE=..\..\..\..\C\Lzma2Dec.c
 # Begin Source File
 
 SOURCE=..\..\..\..\C\Lzma2Dec.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\..\C\Lzma2DecMt.c
-
-!IF  "$(CFG)" == "Alone - Win32 Release"
-
-# ADD CPP /O2
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 Debug"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 ReleaseU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 DebugU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\..\C\Lzma2DecMt.h
 # End Source File
 # Begin Source File
 
@@ -1834,34 +1648,6 @@ SOURCE=..\..\..\..\C\MtCoder.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\..\C\MtDec.c
-
-!IF  "$(CFG)" == "Alone - Win32 Release"
-
-# ADD CPP /O2
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 Debug"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 ReleaseU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "Alone - Win32 DebugU"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\..\C\MtDec.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\..\C\Threads.c
 # SUBTRACT CPP /YX /Yc /Yu
 # End Source File
@@ -1872,38 +1658,6 @@ SOURCE=..\..\..\..\C\Threads.h
 # Begin Source File
 
 SOURCE=..\..\..\..\C\Types.h
-# End Source File
-# End Group
-# Begin Group "Crypto"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=..\..\Crypto\7zAes.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\Crypto\7zAes.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\Crypto\7zAesRegister.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\Crypto\MyAes.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\Crypto\MyAes.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\Crypto\RandGen.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\Crypto\RandGen.h
 # End Source File
 # End Group
 # End Target

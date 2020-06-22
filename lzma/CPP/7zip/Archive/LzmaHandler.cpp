@@ -4,17 +4,16 @@
 
 #include "../../../C/CpuArch.h"
 
-#include "../../Common/ComTry.h"
-#include "../../Common/IntToString.h"
+#include "Common/ComTry.h"
+#include "Common/IntToString.h"
 
-#include "../../Windows/PropVariant.h"
+#include "Windows/PropVariant.h"
 
-#include "../Common/FilterCoder.h"
+#include "../Common/CreateCoder.h"
 #include "../Common/ProgressUtils.h"
 #include "../Common/RegisterArc.h"
 #include "../Common/StreamUtils.h"
 
-#include "../Compress/BcjCoder.h"
 #include "../Compress/LzmaDecoder.h"
 
 #include "Common/DummyOutStream.h"
@@ -27,25 +26,17 @@ namespace NLzma {
 static bool CheckDicSize(const Byte *p)
 {
   UInt32 dicSize = GetUi32(p);
-  if (dicSize == 1)
-    return true;
-  for (unsigned i = 0; i <= 30; i++)
+  for (int i = 1; i <= 30; i++)
     if (dicSize == ((UInt32)2 << i) || dicSize == ((UInt32)3 << i))
       return true;
   return (dicSize == 0xFFFFFFFF);
 }
 
-static const Byte kProps[] =
+STATPROPSTG kProps[] =
 {
-  kpidSize,
-  kpidPackSize,
-  kpidMethod
-};
-
-static const Byte kArcProps[] =
-{
-  kpidNumStreams,
-  kpidMethod
+  { NULL, kpidSize, VT_UI8},
+  { NULL, kpidPackSize, VT_UI8},
+  { NULL, kpidMethod, VT_BSTR}
 };
 
 struct CHeader
@@ -54,7 +45,6 @@ struct CHeader
   Byte FilterID;
   Byte LzmaProps[5];
 
-  Byte GetProp() const { return LzmaProps[0]; }
   UInt32 GetDicSize() const { return GetUi32(LzmaProps + 1); }
   bool HasSize() const { return (Size != (UInt64)(Int64)-1); }
   bool Parse(const Byte *buf, bool isThereFilter);
@@ -72,20 +62,19 @@ bool CHeader::Parse(const Byte *buf, bool isThereFilter)
   return
     LzmaProps[0] < 5 * 5 * 9 &&
     FilterID < 2 &&
-    (!HasSize() || Size < ((UInt64)1 << 56))
-    && CheckDicSize(LzmaProps + 1);
+    (!HasSize() || Size < ((UInt64)1 << 56)) &&
+    CheckDicSize(LzmaProps + 1);
 }
 
 class CDecoder
 {
-  CMyComPtr<ISequentialOutStream> _bcjStream;
-  CFilterCoder *_filterCoder;
-  CMyComPtr<ICompressCoder> _lzmaDecoder;
-public:
   NCompress::NLzma::CDecoder *_lzmaDecoderSpec;
-
+  CMyComPtr<ICompressCoder> _lzmaDecoder;
+  CMyComPtr<ISequentialOutStream> _bcjStream;
+public:
   ~CDecoder();
-  HRESULT Create(bool filtered, ISequentialInStream *inStream);
+  HRESULT Create(DECL_EXTERNAL_CODECS_LOC_VARS
+      bool filtered, ISequentialInStream *inStream);
 
   HRESULT Code(const CHeader &header, ISequentialOutStream *outStream, ICompressProgressInfo *progress);
 
@@ -97,12 +86,15 @@ public:
     { return _lzmaDecoderSpec->ReadFromInputStream(data, size, processedSize); }
 };
 
-HRESULT CDecoder::Create(bool filteredMode, ISequentialInStream *inStream)
+static const UInt64 k_BCJ = 0x03030103;
+  
+HRESULT CDecoder::Create(
+    DECL_EXTERNAL_CODECS_LOC_VARS
+    bool filteredMode, ISequentialInStream *inStream)
 {
   if (!_lzmaDecoder)
   {
     _lzmaDecoderSpec = new NCompress::NLzma::CDecoder;
-    _lzmaDecoderSpec->FinishStream = true;
     _lzmaDecoder = _lzmaDecoderSpec;
   }
 
@@ -110,10 +102,13 @@ HRESULT CDecoder::Create(bool filteredMode, ISequentialInStream *inStream)
   {
     if (!_bcjStream)
     {
-      _filterCoder = new CFilterCoder(false);
-      CMyComPtr<ICompressCoder> coder = _filterCoder;
-      _filterCoder->Filter = new NCompress::NBcj::CCoder(false);
-      _bcjStream = _filterCoder;
+      CMyComPtr<ICompressCoder> coder;
+      RINOK(CreateCoder(EXTERNAL_CODECS_LOC_VARS k_BCJ, coder, false));
+      if (!coder)
+        return E_NOTIMPL;
+      coder.QueryInterface(IID_ISequentialOutStream, &_bcjStream);
+      if (!_bcjStream)
+        return E_NOTIMPL;
     }
   }
 
@@ -131,15 +126,25 @@ HRESULT CDecoder::Code(const CHeader &header, ISequentialOutStream *outStream,
   if (header.FilterID > 1)
     return E_NOTIMPL;
 
-  RINOK(_lzmaDecoderSpec->SetDecoderProperties2(header.LzmaProps, 5));
+  {
+    CMyComPtr<ICompressSetDecoderProperties2> setDecoderProperties;
+    _lzmaDecoder.QueryInterface(IID_ICompressSetDecoderProperties2, &setDecoderProperties);
+    if (!setDecoderProperties)
+      return E_NOTIMPL;
+    RINOK(setDecoderProperties->SetDecoderProperties2(header.LzmaProps, 5));
+  }
+
+  CMyComPtr<ICompressSetOutStream> setOutStream;
 
   bool filteredMode = (header.FilterID == 1);
 
   if (filteredMode)
   {
-    RINOK(_filterCoder->SetOutStream(outStream));
+    _bcjStream.QueryInterface(IID_ICompressSetOutStream, &setOutStream);
+    if (!setOutStream)
+      return E_NOTIMPL;
+    RINOK(setOutStream->SetOutStream(outStream));
     outStream = _bcjStream;
-    RINOK(_filterCoder->SetOutStreamSize(NULL));
   }
 
   const UInt64 *Size = header.HasSize() ? &header.Size : NULL;
@@ -147,21 +152,19 @@ HRESULT CDecoder::Code(const CHeader &header, ISequentialOutStream *outStream,
 
   if (filteredMode)
   {
+    CMyComPtr<IOutStreamFlush> flush;
+    _bcjStream.QueryInterface(IID_IOutStreamFlush, &flush);
+    if (flush)
     {
-      HRESULT res2 = _filterCoder->OutStreamFinish();
+      HRESULT res2 = flush->Flush();
       if (res == S_OK)
         res = res2;
     }
-    HRESULT res2 = _filterCoder->ReleaseOutStream();
+    HRESULT res2 = setOutStream->ReleaseOutStream();
     if (res == S_OK)
       res = res2;
   }
-  
   RINOK(res);
-
-  if (header.HasSize())
-    if (_lzmaDecoderSpec->GetOutputProcessedSize() != header.Size)
-      return S_FALSE;
 
   return S_OK;
 }
@@ -170,33 +173,26 @@ HRESULT CDecoder::Code(const CHeader &header, ISequentialOutStream *outStream,
 class CHandler:
   public IInArchive,
   public IArchiveOpenSeq,
+  PUBLIC_ISetCompressCodecsInfo
   public CMyUnknownImp
 {
   CHeader _header;
   bool _lzma86;
+  UInt64 _startPosition;
+  UInt64 _packSize;
+  bool _packSizeDefined;
   CMyComPtr<IInStream> _stream;
   CMyComPtr<ISequentialInStream> _seqStream;
-  
-  bool _isArc;
-  bool _needSeekToStart;
-  bool _dataAfterEnd;
-  bool _needMoreInput;
 
-  bool _packSize_Defined;
-  bool _unpackSize_Defined;
-  bool _numStreams_Defined;
-
-  bool _unsupported;
-  bool _dataError;
-
-  UInt64 _packSize;
-  UInt64 _unpackSize;
-  UInt64 _numStreams;
-
-  void GetMethod(NCOM::CPropVariant &prop);
+  DECL_EXTERNAL_CODECS_VARS
+  DECL_ISetCompressCodecsInfo
 
 public:
-  MY_UNKNOWN_IMP2(IInArchive, IArchiveOpenSeq)
+  MY_QUERYINTERFACE_BEGIN2(IInArchive)
+  MY_QUERYINTERFACE_ENTRY(IArchiveOpenSeq)
+  QUERY_ENTRY_ISetCompressCodecsInfo
+  MY_QUERYINTERFACE_END
+  MY_ADDREF_RELEASE
 
   INTERFACE_IInArchive(;)
   STDMETHOD(OpenSeq)(ISequentialInStream *stream);
@@ -208,28 +204,14 @@ public:
 };
 
 IMP_IInArchive_Props
-IMP_IInArchive_ArcProps
+IMP_IInArchive_ArcProps_NO_Table
 
 STDMETHODIMP CHandler::GetArchiveProperty(PROPID propID, PROPVARIANT *value)
 {
   NCOM::CPropVariant prop;
-  switch (propID)
+  switch(propID)
   {
-    case kpidPhySize: if (_packSize_Defined) prop = _packSize; break;
-    case kpidNumStreams: if (_numStreams_Defined) prop = _numStreams; break;
-    case kpidUnpackSize: if (_unpackSize_Defined) prop = _unpackSize; break;
-    case kpidMethod: GetMethod(prop); break;
-    case kpidErrorFlags:
-    {
-      UInt32 v = 0;
-      if (!_isArc) v |= kpv_ErrorFlags_IsNotArc;;
-      if (_needMoreInput) v |= kpv_ErrorFlags_UnexpectedEnd;
-      if (_dataAfterEnd) v |= kpv_ErrorFlags_DataAfterEnd;
-      if (_unsupported) v |= kpv_ErrorFlags_UnsupportedMethod;
-      if (_dataError) v |= kpv_ErrorFlags_DataError;
-      prop = v;
-      break;
-    }
+    case kpidPhySize: if (_packSizeDefined) prop = _packSize; break;
   }
   prop.Detach(value);
   return S_OK;
@@ -241,235 +223,111 @@ STDMETHODIMP CHandler::GetNumberOfItems(UInt32 *numItems)
   return S_OK;
 }
 
-
-static void DictSizeToString(UInt32 val, char *s)
+static void DictSizeToString(UInt32 value, char *s)
 {
-  for (unsigned i = 0; i <= 31; i++)
-    if (((UInt32)1 << i) == val)
+  for (int i = 0; i <= 31; i++)
+    if ((UInt32(1) << i) == value)
     {
       ::ConvertUInt32ToString(i, s);
       return;
     }
   char c = 'b';
-       if ((val & ((1 << 20) - 1)) == 0) { val >>= 20; c = 'm'; }
-  else if ((val & ((1 << 10) - 1)) == 0) { val >>= 10; c = 'k'; }
-  ::ConvertUInt32ToString(val, s);
-  s += MyStringLen(s);
-  *s++ = c;
-  *s = 0;
-}
-
-static char *AddProp32(char *s, const char *name, UInt32 v)
-{
-  *s++ = ':';
-  s = MyStpCpy(s, name);
-  ::ConvertUInt32ToString(v, s);
-  return s + MyStringLen(s);
-}
-
-void CHandler::GetMethod(NCOM::CPropVariant &prop)
-{
-  if (!_stream)
-    return;
-
-  char sz[64];
-  char *s = sz;
-  if (_header.FilterID != 0)
-    s = MyStpCpy(s, "BCJ ");
-  s = MyStpCpy(s, "LZMA:");
-  DictSizeToString(_header.GetDicSize(), s);
-  s += strlen(s);
-  
-  UInt32 d = _header.GetProp();
-  // if (d != 0x5D)
+  if ((value & ((1 << 20) - 1)) == 0)
   {
-    UInt32 lc = d % 9;
-    d /= 9;
-    UInt32 pb = d / 5;
-    UInt32 lp = d % 5;
-    if (lc != 3) s = AddProp32(s, "lc", lc);
-    if (lp != 0) s = AddProp32(s, "lp", lp);
-    if (pb != 2) s = AddProp32(s, "pb", pb);
+    value >>= 20;
+    c = 'm';
   }
-  prop = sz;
+  else if ((value & ((1 << 10) - 1)) == 0)
+  {
+    value >>= 10;
+    c = 'k';
+  }
+  ::ConvertUInt32ToString(value, s);
+  int p = MyStringLen(s);
+  s[p++] = c;
+  s[p++] = '\0';
 }
 
+static void MyStrCat(char *d, const char *s)
+{
+  MyStringCopy(d + MyStringLen(d), s);
+}
 
-STDMETHODIMP CHandler::GetProperty(UInt32 /* index */, PROPID propID, PROPVARIANT *value)
+STDMETHODIMP CHandler::GetProperty(UInt32 /* index */, PROPID propID,  PROPVARIANT *value)
 {
   NCOM::CPropVariant prop;
-  switch (propID)
+  switch(propID)
   {
     case kpidSize: if (_stream && _header.HasSize()) prop = _header.Size; break;
-    case kpidPackSize: if (_packSize_Defined) prop = _packSize; break;
-    case kpidMethod: GetMethod(prop); break;
+    case kpidPackSize: if (_packSizeDefined) prop = _packSize; break;
+    case kpidMethod:
+      if (_stream)
+      {
+        char s[64];
+        s[0] = '\0';
+        if (_header.FilterID != 0)
+          MyStrCat(s, "BCJ ");
+        MyStrCat(s, "LZMA:");
+        DictSizeToString(_header.GetDicSize(), s + MyStringLen(s));
+        prop = s;
+      }
+      break;
   }
   prop.Detach(value);
   return S_OK;
 }
 
-API_FUNC_static_IsArc IsArc_Lzma(const Byte *p, size_t size)
-{
-  const UInt32 kHeaderSize = 1 + 4 + 8;
-  if (size < kHeaderSize)
-    return k_IsArc_Res_NEED_MORE;
-  if (p[0] >= 5 * 5 * 9)
-    return k_IsArc_Res_NO;
-  UInt64 unpackSize = GetUi64(p + 1 + 4);
-  if (unpackSize != (UInt64)(Int64)-1)
-  {
-    if (size >= ((UInt64)1 << 56))
-      return k_IsArc_Res_NO;
-  }
-  if (unpackSize != 0)
-  {
-    if (size < kHeaderSize + 2)
-      return k_IsArc_Res_NEED_MORE;
-    if (p[kHeaderSize] != 0)
-      return k_IsArc_Res_NO;
-    if (unpackSize != (UInt64)(Int64)-1)
-    {
-      if ((p[kHeaderSize + 1] & 0x80) != 0)
-        return k_IsArc_Res_NO;
-    }
-  }
-  if (!CheckDicSize(p + 1))
-    // return k_IsArc_Res_YES_LOW_PROB;
-    return k_IsArc_Res_NO;
-  return k_IsArc_Res_YES;
-}
-}
-
-API_FUNC_static_IsArc IsArc_Lzma86(const Byte *p, size_t size)
-{
-  if (size < 1)
-    return k_IsArc_Res_NEED_MORE;
-  Byte filterID = p[0];
-  if (filterID != 0 && filterID != 1)
-    return k_IsArc_Res_NO;
-  return IsArc_Lzma(p + 1, size - 1);
-}
-}
-
-
-
 STDMETHODIMP CHandler::Open(IInStream *inStream, const UInt64 *, IArchiveOpenCallback *)
 {
-  Close();
+  RINOK(inStream->Seek(0, STREAM_SEEK_CUR, &_startPosition));
   
-  const unsigned headerSize = GetHeaderSize();
-  const UInt32 kBufSize = 1 << 7;
+  const UInt32 kBufSize = 1 + 5 + 8 + 1;
   Byte buf[kBufSize];
-  size_t processedSize = kBufSize;
-  RINOK(ReadStream(inStream, buf, &processedSize));
-  if (processedSize < headerSize + 2)
-    return S_FALSE;
+  
+  RINOK(ReadStream_FALSE(inStream, buf, kBufSize));
+  
   if (!_header.Parse(buf, _lzma86))
     return S_FALSE;
-  const Byte *start = buf + headerSize;
-  if (start[0] != 0 /* || (start[1] & 0x80) != 0 */ ) // empty stream with EOS is not 0x80
+  const Byte *start = buf + GetHeaderSize();
+  if (start[0] != 0)
     return S_FALSE;
-
-  RINOK(inStream->Seek(0, STREAM_SEEK_END, &_packSize));
-
-  SizeT srcLen = processedSize - headerSize;
-
-  if (srcLen > 10
-      && _header.Size == 0
-      // && _header.FilterID == 0
-      && _header.LzmaProps[0] == 0
-      )
-    return S_FALSE;
-
-  CDecoder state;
-  const UInt32 outLimit = 1 << 11;
-  Byte outBuf[outLimit];
-
-  SizeT outSize = outLimit;
-  if (outSize > _header.Size)
-    outSize = (SizeT)_header.Size;
-  SizeT destLen = outSize;
-  ELzmaStatus status;
   
-  SRes res = LzmaDecode(outBuf, &destLen, start, &srcLen,
-      _header.LzmaProps, 5, LZMA_FINISH_ANY,
-      &status, &g_Alloc);
+  UInt64 endPos;
+  RINOK(inStream->Seek(0, STREAM_SEEK_END, &endPos));
+  _packSize = endPos - _startPosition;
+  _packSizeDefined = true;
   
-  if (res != SZ_OK)
-    if (res != SZ_ERROR_INPUT_EOF)
-      return S_FALSE;
-
-  _isArc = true;
   _stream = inStream;
   _seqStream = inStream;
-  _needSeekToStart = true;
   return S_OK;
 }
 
 STDMETHODIMP CHandler::OpenSeq(ISequentialInStream *stream)
 {
   Close();
-  _isArc = true;
   _seqStream = stream;
   return S_OK;
 }
 
 STDMETHODIMP CHandler::Close()
 {
-  _isArc = false;
-  _packSize_Defined = false;
-  _unpackSize_Defined = false;
-  _numStreams_Defined = false;
-
-  _dataAfterEnd = false;
-  _needMoreInput = false;
-  _unsupported = false;
-  _dataError = false;
-
-  _packSize = 0;
-
-  _needSeekToStart = false;
-
+  _packSizeDefined = false;
   _stream.Release();
   _seqStream.Release();
    return S_OK;
 }
 
-class CCompressProgressInfoImp:
-  public ICompressProgressInfo,
-  public CMyUnknownImp
-{
-  CMyComPtr<IArchiveOpenCallback> Callback;
-public:
-  UInt64 Offset;
- 
-  MY_UNKNOWN_IMP1(ICompressProgressInfo)
-  STDMETHOD(SetRatioInfo)(const UInt64 *inSize, const UInt64 *outSize);
-  void Init(IArchiveOpenCallback *callback) { Callback = callback; }
-};
-
-STDMETHODIMP CCompressProgressInfoImp::SetRatioInfo(const UInt64 *inSize, const UInt64 * /* outSize */)
-{
-  if (Callback)
-  {
-    const UInt64 files = 0;
-    const UInt64 val = Offset + *inSize;
-    return Callback->SetCompleted(&files, &val);
-  }
-  return S_OK;
-}
 
 STDMETHODIMP CHandler::Extract(const UInt32 *indices, UInt32 numItems,
     Int32 testMode, IArchiveExtractCallback *extractCallback)
 {
   COM_TRY_BEGIN
-
   if (numItems == 0)
     return S_OK;
-  if (numItems != (UInt32)(Int32)-1 && (numItems != 1 || indices[0] != 0))
+  if (numItems != (UInt32)-1 && (numItems != 1 || indices[0] != 0))
     return E_INVALIDARG;
 
-  if (_packSize_Defined)
+  if (_stream)
     extractCallback->SetTotal(_packSize);
     
   
@@ -493,32 +351,28 @@ STDMETHODIMP CHandler::Extract(const UInt32 *indices, UInt32 numItems,
   CMyComPtr<ICompressProgressInfo> progress = lps;
   lps->Init(extractCallback, true);
 
-  if (_needSeekToStart)
+  if (_stream)
   {
-    if (!_stream)
-      return E_FAIL;
-    RINOK(_stream->Seek(0, STREAM_SEEK_SET, NULL));
+    RINOK(_stream->Seek(_startPosition, STREAM_SEEK_SET, NULL));
   }
-  else
-    _needSeekToStart = true;
 
   CDecoder decoder;
-  HRESULT result = decoder.Create(_lzma86, _seqStream);
+  HRESULT result = decoder.Create(
+      EXTERNAL_CODECS_VARS
+      _lzma86, _seqStream);
   RINOK(result);
  
+  Int32 opRes = NExtract::NOperationResult::kOK;
   bool firstItem = true;
 
-  UInt64 packSize = 0;
-  UInt64 unpackSize = 0;
-  UInt64 numStreams = 0;
-
-  bool dataAfterEnd = false;
-  
   for (;;)
   {
-    lps->InSize = packSize;
-    lps->OutSize = unpackSize;
+    lps->OutSize = outStreamSpec->GetSize();
+    lps->InSize = _packSize = decoder.GetInputProcessedSize();
+    _packSizeDefined = true;
     RINOK(lps->SetCur());
+
+    CHeader st;
 
     const UInt32 kBufSize = 1 + 5 + 8;
     Byte buf[kBufSize];
@@ -526,104 +380,51 @@ STDMETHODIMP CHandler::Extract(const UInt32 *indices, UInt32 numItems,
     UInt32 processed;
     RINOK(decoder.ReadInput(buf, headerSize, &processed));
     if (processed != headerSize)
-    {
-      if (processed != 0)
-        dataAfterEnd = true;
       break;
-    }
   
-    CHeader st;
     if (!st.Parse(buf, _lzma86))
-    {
-      dataAfterEnd = true;
       break;
-    }
-    numStreams++;
     firstItem = false;
 
     result = decoder.Code(st, outStream, progress);
-
-    packSize = decoder.GetInputProcessedSize();
-    unpackSize = outStreamSpec->GetSize();
-    
     if (result == E_NOTIMPL)
     {
-      _unsupported = true;
-      result = S_FALSE;
+      opRes = NExtract::NOperationResult::kUnSupportedMethod;
       break;
     }
     if (result == S_FALSE)
+    {
+      opRes = NExtract::NOperationResult::kDataError;
       break;
+    }
     RINOK(result);
   }
-
   if (firstItem)
-  {
-    _isArc = false;
-    result = S_FALSE;
-  }
-  else if (result == S_OK || result == S_FALSE)
-  {
-    if (dataAfterEnd)
-      _dataAfterEnd = true;
-    else if (decoder._lzmaDecoderSpec->NeedsMoreInput())
-      _needMoreInput = true;
-
-    _packSize = packSize;
-    _unpackSize = unpackSize;
-    _numStreams = numStreams;
-  
-    _packSize_Defined = true;
-    _unpackSize_Defined = true;
-    _numStreams_Defined = true;
-  }
-  
-  Int32 opResult = NExtract::NOperationResult::kOK;
-
-  if (!_isArc)
-    opResult = NExtract::NOperationResult::kIsNotArc;
-  else if (_needMoreInput)
-    opResult = NExtract::NOperationResult::kUnexpectedEnd;
-  else if (_unsupported)
-    opResult = NExtract::NOperationResult::kUnsupportedMethod;
-  else if (_dataAfterEnd)
-    opResult = NExtract::NOperationResult::kDataAfterEnd;
-  else if (result == S_FALSE)
-    opResult = NExtract::NOperationResult::kDataError;
-  else if (result == S_OK)
-    opResult = NExtract::NOperationResult::kOK;
-  else
-    return result;
-
+    return E_FAIL;
   outStream.Release();
-  return extractCallback->SetOperationResult(opResult);
-
+  return extractCallback->SetOperationResult(opRes);
   COM_TRY_END
 }
 
+IMPL_ISetCompressCodecsInfo
+
+static IInArchive *CreateArc() { return new CHandler(false); }
+static IInArchive *CreateArc86() { return new CHandler(true); }
+
 namespace NLzmaAr {
+  
+static CArcInfo g_ArcInfo =
+  { L"lzma", L"lzma", 0, 0xA, { 0 }, 0, true, CreateArc, NULL };
+REGISTER_ARC(Lzma)
 
-// 2, { 0x5D, 0x00 },
-
-REGISTER_ARC_I_CLS_NO_SIG(
-  CHandler(false),
-  "lzma", "lzma", 0, 0xA,
-  0,
-  NArcInfoFlags::kStartOpen |
-  NArcInfoFlags::kKeepName,
-  IsArc_Lzma)
- 
 }
 
 namespace NLzma86Ar {
 
-REGISTER_ARC_I_CLS_NO_SIG(
-  CHandler(true),
-  "lzma86", "lzma86", 0, 0xB,
-  0,
-  NArcInfoFlags::kKeepName,
-  IsArc_Lzma86)
- 
+static CArcInfo g_ArcInfo =
+  { L"lzma86", L"lzma86", 0, 0xB, { 0 }, 0, true, CreateArc86, NULL };
+REGISTER_ARC(Lzma86)
+
 }
 
 }}

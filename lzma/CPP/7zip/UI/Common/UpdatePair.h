@@ -13,9 +13,7 @@ struct CUpdatePair
   NUpdateArchive::NPairState::EEnum State;
   int ArcIndex;
   int DirIndex;
-  int HostIndex; // >= 0 for alt streams only, contains index of host pair
-
-  CUpdatePair(): ArcIndex(-1), DirIndex(-1), HostIndex(-1) {}
+  CUpdatePair(): ArcIndex(-1), DirIndex(-1) {}
 };
 
 void GetUpdatePairInfoList(

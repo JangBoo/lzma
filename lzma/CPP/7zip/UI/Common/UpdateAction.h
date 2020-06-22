@@ -7,7 +7,7 @@ namespace NUpdateArchive {
 
   namespace NPairState
   {
-    const unsigned kNumValues = 7;
+    const int kNumValues = 7;
     enum EEnum
     {
       kNotMasked = 0,
@@ -34,18 +34,9 @@ namespace NUpdateArchive {
   struct CActionSet
   {
     NPairAction::EEnum StateActions[NPairState::kNumValues];
-    
-    bool IsEqualTo(const CActionSet &a) const
-    {
-      for (unsigned i = 0; i < NPairState::kNumValues; i++)
-        if (StateActions[i] != a.StateActions[i])
-          return false;
-      return true;
-    }
-
     bool NeedScanning() const
     {
-      unsigned i;
+      int i;
       for (i = 0; i < NPairState::kNumValues; i++)
         if (StateActions[i] == NPairAction::kCompress)
           return true;
@@ -56,11 +47,11 @@ namespace NUpdateArchive {
     }
   };
   
-  extern const CActionSet k_ActionSet_Add;
-  extern const CActionSet k_ActionSet_Update;
-  extern const CActionSet k_ActionSet_Fresh;
-  extern const CActionSet k_ActionSet_Sync;
-  extern const CActionSet k_ActionSet_Delete;
+  extern const CActionSet kAddActionSet;
+  extern const CActionSet kUpdateActionSet;
+  extern const CActionSet kFreshActionSet;
+  extern const CActionSet kSynchronizeActionSet;
+  extern const CActionSet kDeleteActionSet;
 }
 
 #endif

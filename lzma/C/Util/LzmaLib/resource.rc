@@ -1,3 +1,4 @@
-#include "../../7zVersion.rc"
+#include "../../../CPP/7zip/MyVersionInfo.rc"
 
 MY_VERSION_INFO_DLL("LZMA library", "LZMA")
+

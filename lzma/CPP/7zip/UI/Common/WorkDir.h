@@ -1,26 +1,10 @@
 // WorkDir.h
 
-#ifndef __WORK_DIR_H
-#define __WORK_DIR_H
-
-#include "../../../Windows/FileDir.h"
-
-#include "../../Common/FileStreams.h"
+#ifndef __WORKDIR_H
+#define __WORKDIR_H
 
 #include "ZipRegistry.h"
 
-FString GetWorkDir(const NWorkDir::CInfo &workDirInfo, const FString &path, FString &fileName);
-
-class CWorkDirTempFile
-{
-  FString _originalPath;
-  NWindows::NFile::NDir::CTempFile _tempFile;
-  COutFileStream *_outStreamSpec;
-public:
-  CMyComPtr<IOutStream> OutStream;
-
-  HRESULT CreateTempFile(const FString &originalPath);
-  HRESULT MoveToOriginal(bool deleteOriginal);
-};
+UString GetWorkDir(const NWorkDir::CInfo &workDirInfo, const UString &path);
 
 #endif

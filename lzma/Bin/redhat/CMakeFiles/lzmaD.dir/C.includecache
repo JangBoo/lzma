@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/blavallee/Projects/ext/lzma920/C/Bra.h
+Types.h
+/home/blavallee/Projects/ext/lzma920/C/Types.h
+
+/home/blavallee/Projects/ext/lzma920/C/Bra86.c
+Bra.h
+/home/blavallee/Projects/ext/lzma920/C/Bra.h
+
+/home/blavallee/Projects/ext/lzma920/C/Types.h
+stddef.h
+-
+windows.h
+-
+

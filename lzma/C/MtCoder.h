@@ -1,140 +1,97 @@
 /* MtCoder.h -- Multi-thread Coder
-2018-07-04 : Igor Pavlov : Public domain */
+2009-11-19 : Igor Pavlov : Public domain */
 
 #ifndef __MT_CODER_H
 #define __MT_CODER_H
 
-#include "MtDec.h"
+#include "Threads.h"
 
 EXTERN_C_BEGIN
 
-/*
-  if (    defined MTCODER__USE_WRITE_THREAD) : main thread writes all data blocks to output stream
-  if (not defined MTCODER__USE_WRITE_THREAD) : any coder thread can write data blocks to output stream
-*/
-/* #define MTCODER__USE_WRITE_THREAD */
+typedef struct
+{
+  CThread thread;
+  CAutoResetEvent startEvent;
+  CAutoResetEvent finishedEvent;
+  int stop;
+  
+  THREAD_FUNC_TYPE func;
+  LPVOID param;
+  THREAD_FUNC_RET_TYPE res;
+} CLoopThread;
+
+void LoopThread_Construct(CLoopThread *p);
+void LoopThread_Close(CLoopThread *p);
+WRes LoopThread_Create(CLoopThread *p);
+WRes LoopThread_StopAndWait(CLoopThread *p);
+WRes LoopThread_StartSubThread(CLoopThread *p);
+WRes LoopThread_WaitSubThread(CLoopThread *p);
 
 #ifndef _7ZIP_ST
-  #define MTCODER__GET_NUM_BLOCKS_FROM_THREADS(numThreads) ((numThreads) + (numThreads) / 8 + 1)
-  #define MTCODER__THREADS_MAX 64
-  #define MTCODER__BLOCKS_MAX (MTCODER__GET_NUM_BLOCKS_FROM_THREADS(MTCODER__THREADS_MAX) + 3)
+#define NUM_MT_CODER_THREADS_MAX 32
 #else
-  #define MTCODER__THREADS_MAX 1
-  #define MTCODER__BLOCKS_MAX 1
+#define NUM_MT_CODER_THREADS_MAX 1
 #endif
-
-
-#ifndef _7ZIP_ST
-
 
 typedef struct
 {
-  ICompressProgress vt;
-  CMtProgress *mtProgress;
-  UInt64 inSize;
-  UInt64 outSize;
-} CMtProgressThunk;
+  UInt64 totalInSize;
+  UInt64 totalOutSize;
+  ICompressProgress *progress;
+  SRes res;
+  CCriticalSection cs;
+  UInt64 inSizes[NUM_MT_CODER_THREADS_MAX];
+  UInt64 outSizes[NUM_MT_CODER_THREADS_MAX];
+} CMtProgress;
 
-void MtProgressThunk_CreateVTable(CMtProgressThunk *p);
-    
-#define MtProgressThunk_Init(p) { (p)->inSize = 0; (p)->outSize = 0; }
-
+SRes MtProgress_Set(CMtProgress *p, unsigned index, UInt64 inSize, UInt64 outSize);
 
 struct _CMtCoder;
-
 
 typedef struct
 {
   struct _CMtCoder *mtCoder;
-  unsigned index;
-  int stop;
+  Byte *outBuf;
+  size_t outBufSize;
   Byte *inBuf;
+  size_t inBufSize;
+  unsigned index;
+  CLoopThread thread;
 
-  CAutoResetEvent startEvent;
-  CThread thread;
-} CMtCoderThread;
-
+  Bool stopReading;
+  Bool stopWriting;
+  CAutoResetEvent canRead;
+  CAutoResetEvent canWrite;
+} CMtThread;
 
 typedef struct
 {
-  SRes (*Code)(void *p, unsigned coderIndex, unsigned outBufIndex,
+  SRes (*Code)(void *p, unsigned index, Byte *dest, size_t *destSize,
       const Byte *src, size_t srcSize, int finished);
-  SRes (*Write)(void *p, unsigned outBufIndex);
-} IMtCoderCallback2;
-
-
-typedef struct
-{
-  SRes res;
-  unsigned bufIndex;
-  BoolInt finished;
-} CMtCoderBlock;
-
+} IMtCoderCallback;
 
 typedef struct _CMtCoder
 {
-  /* input variables */
+  size_t blockSize;
+  size_t destBlockSize;
+  unsigned numThreads;
   
-  size_t blockSize;        /* size of input block */
-  unsigned numThreadsMax;
-  UInt64 expectedDataSize;
-
   ISeqInStream *inStream;
-  const Byte *inData;
-  size_t inDataSize;
-
+  ISeqOutStream *outStream;
   ICompressProgress *progress;
-  ISzAllocPtr allocBig;
+  ISzAlloc *alloc;
 
-  IMtCoderCallback2 *mtCallback;
-  void *mtCallbackObject;
-
-  
-  /* internal variables */
-  
-  size_t allocatedBufsSize;
-
-  CAutoResetEvent readEvent;
-  CSemaphore blocksSemaphore;
-
-  BoolInt stopReading;
-  SRes readRes;
-
-  #ifdef MTCODER__USE_WRITE_THREAD
-    CAutoResetEvent writeEvents[MTCODER__BLOCKS_MAX];
-  #else
-    CAutoResetEvent finishedEvent;
-    SRes writeRes;
-    unsigned writeIndex;
-    Byte ReadyBlocks[MTCODER__BLOCKS_MAX];
-    LONG numFinishedThreads;
-  #endif
-
-  unsigned numStartedThreadsLimit;
-  unsigned numStartedThreads;
-
-  unsigned numBlocksMax;
-  unsigned blockIndex;
-  UInt64 readProcessed;
-
+  IMtCoderCallback *mtCallback;
   CCriticalSection cs;
-
-  unsigned freeBlockHead;
-  unsigned freeBlockList[MTCODER__BLOCKS_MAX];
+  SRes res;
 
   CMtProgress mtProgress;
-  CMtCoderBlock blocks[MTCODER__BLOCKS_MAX];
-  CMtCoderThread threads[MTCODER__THREADS_MAX];
+  CMtThread threads[NUM_MT_CODER_THREADS_MAX];
 } CMtCoder;
 
-
-void MtCoder_Construct(CMtCoder *p);
-void MtCoder_Destruct(CMtCoder *p);
+void MtCoder_Construct(CMtCoder* p);
+void MtCoder_Destruct(CMtCoder* p);
 SRes MtCoder_Code(CMtCoder *p);
-
-
-#endif
-
 
 EXTERN_C_END
 

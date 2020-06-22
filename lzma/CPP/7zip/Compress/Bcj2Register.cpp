@@ -6,19 +6,14 @@
 
 #include "Bcj2Coder.h"
 
-namespace NCompress {
-namespace NBcj2 {
-
-REGISTER_CODEC_CREATE_2(CreateCodec, CDecoder(), ICompressCoder2)
+static void *CreateCodec() { return (void *)(ICompressCoder2 *)(new NCompress::NBcj2::CDecoder()); }
 #ifndef EXTRACT_ONLY
-REGISTER_CODEC_CREATE_2(CreateCodecOut, CEncoder(), ICompressCoder2)
+static void *CreateCodecOut() { return (void *)(ICompressCoder2 *)(new NCompress::NBcj2::CEncoder());  }
 #else
-#define CreateCodecOut NULL
+#define CreateCodecOut 0
 #endif
 
-REGISTER_CODEC_VAR
-  { CreateCodec, CreateCodecOut, 0x303011B, "BCJ2", 4, false };
+static CCodecInfo g_CodecInfo =
+  { CreateCodec, CreateCodecOut, 0x0303011B, L"BCJ2", 4, false };
 
 REGISTER_CODEC(BCJ2)
-
-}}

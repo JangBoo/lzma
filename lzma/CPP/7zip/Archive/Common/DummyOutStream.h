@@ -1,11 +1,10 @@
 // DummyOutStream.h
 
-#ifndef __DUMMY_OUT_STREAM_H
-#define __DUMMY_OUT_STREAM_H
-
-#include "../../../Common/MyCom.h"
+#ifndef __DUMMYOUTSTREAM_H
+#define __DUMMYOUTSTREAM_H
 
 #include "../../IStream.h"
+#include "Common/MyCom.h"
 
 class CDummyOutStream:
   public ISequentialOutStream,

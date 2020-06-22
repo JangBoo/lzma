@@ -3,7 +3,7 @@
 #ifndef __WINDOWS_FILEMAPPING_H
 #define __WINDOWS_FILEMAPPING_H
 
-#include "../Common/MyTypes.h"
+#include "Common/Types.h"
 
 #include "Handle.h"
 
@@ -18,11 +18,7 @@ public:
     return ::GetLastError();
   }
 
-  WRes Open(DWORD
-      #ifndef UNDER_CE
-      desiredAccess
-      #endif
-      , LPCTSTR name)
+  WRes Open(DWORD desiredAccess, LPCTSTR name)
   {
     #ifdef UNDER_CE
     WRes res = Create(PAGE_READONLY, 0, name);

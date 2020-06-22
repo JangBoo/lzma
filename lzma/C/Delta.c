@@ -1,8 +1,6 @@
 /* Delta.c -- Delta converter
 2009-05-26 : Igor Pavlov : Public domain */
 
-#include "Precomp.h"
-
 #include "Delta.h"
 
 void Delta_Init(Byte *state)

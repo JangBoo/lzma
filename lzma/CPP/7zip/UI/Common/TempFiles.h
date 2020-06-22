@@ -1,15 +1,15 @@
 // TempFiles.h
 
-#ifndef __TEMP_FILES_H
-#define __TEMP_FILES_H
+#ifndef __TEMPFILES_H
+#define __TEMPFILES_H
 
-#include "../../../Common/MyString.h"
+#include "Common/MyString.h"
 
 class CTempFiles
 {
   void Clear();
 public:
-  FStringVector Paths;
+  UStringVector Paths;
   ~CTempFiles() { Clear(); }
 };
 

@@ -1,7 +1,8 @@
 PROG = lzma.exe
 MY_CONSOLE = 1
+CFLAGS = $(CFLAGS)
 
-CURRENT_OBJS = \
+LZMA_OBJS = \
   $O\LzmaAlone.obj \
 
 COMPRESS_OBJS = \
@@ -12,17 +13,14 @@ COMPRESS_OBJS = \
 COMMON_OBJS = \
   $O\CommandLineParser.obj \
   $O\CRC.obj \
-  $O\CrcReg.obj \
   $O\IntToString.obj \
   $O\MyString.obj \
-  $O\NewHandler.obj \
   $O\StringConvert.obj \
   $O\StringToInt.obj \
   $O\MyVector.obj
 
 WIN_OBJS = \
   $O\FileIO.obj \
-  $O\PropVariant.obj \
   $O\System.obj
 
 7ZIP_COMMON_OBJS = \
@@ -30,7 +28,6 @@ WIN_OBJS = \
   $O\CreateCoder.obj \
   $O\FileStreams.obj \
   $O\FilterCoder.obj \
-  $O\MethodProps.obj \
   $O\OutBuffer.obj \
   $O\StreamUtils.obj \
 
@@ -54,6 +51,37 @@ C_OBJS = \
   $O\Threads.obj \
 
 !include "../../Crc.mak"
-!include "../../LzmaDec.mak"
 
-!include "../../7zip.mak"
+OBJS = \
+  $O\StdAfx.obj \
+  $(LZMA_OBJS) \
+  $(COMPRESS_OBJS) \
+  $(COMMON_OBJS) \
+  $(WIN_OBJS) \
+  $(7ZIP_COMMON_OBJS) \
+  $(UI_COMMON_OBJS) \
+  $(CONSOLE_OBJS) \
+  $(C_OBJS) \
+  $(ASM_OBJS) \
+
+!include "../../../Build.mak"
+
+
+$(LZMA_OBJS): $(*B).cpp
+	$(COMPL)
+$(COMPRESS_OBJS): ../../Compress/$(*B).cpp
+	$(COMPL_O2)
+$(COMMON_OBJS): ../../../Common/$(*B).cpp
+	$(COMPL)
+$(WIN_OBJS): ../../../Windows/$(*B).cpp
+	$(COMPL)
+$(7ZIP_COMMON_OBJS): ../../Common/$(*B).cpp
+	$(COMPL)
+$(UI_COMMON_OBJS): ../../UI/Common/$(*B).cpp
+	$(COMPL)
+$(CONSOLE_OBJS): ../../UI/Console/$(*B).cpp
+	$(COMPL)
+$(C_OBJS): ../../../../C/$(*B).c
+	$(COMPL_O2)
+
+!include "../../Asm.mak"

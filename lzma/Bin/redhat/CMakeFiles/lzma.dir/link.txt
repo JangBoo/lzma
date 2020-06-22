@@ -1,0 +1,1 @@
+/usr/bin/gcc  -fPIC   -shared -Wl,-soname,liblzma.so -o liblzma.so CMakeFiles/lzma.dir/home/blavallee/Projects/ext/lzma920/C/LzmaDec.c.o CMakeFiles/lzma.dir/home/blavallee/Projects/ext/lzma920/C/LzmaEnc.c.o 

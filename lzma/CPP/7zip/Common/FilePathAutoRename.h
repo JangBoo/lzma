@@ -1,10 +1,10 @@
-// FilePathAutoRename.h
+// Util/FilePathAutoRename.h
 
-#ifndef __FILE_PATH_AUTO_RENAME_H
-#define __FILE_PATH_AUTO_RENAME_H
+#ifndef __FILEPATHAUTORENAME_H
+#define __FILEPATHAUTORENAME_H
 
-#include "../../Common/MyString.h"
+#include "Common/MyString.h"
 
-bool AutoRenamePath(FString &fullProcessedPath);
+bool AutoRenamePath(UString &fullProcessedPath);
 
 #endif

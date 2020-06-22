@@ -14,26 +14,21 @@ class CMultiStream:
 {
   UInt64 _pos;
   UInt64 _totalLength;
-  unsigned _streamIndex;
-
+  int _streamIndex;
 public:
-
   struct CSubStreamInfo
   {
     CMyComPtr<IInStream> Stream;
     UInt64 Size;
     UInt64 GlobalOffset;
     UInt64 LocalPos;
-
-    CSubStreamInfo(): Size(0), GlobalOffset(0), LocalPos(0) {}
   };
-  
   CObjectVector<CSubStreamInfo> Streams;
   
   HRESULT Init()
   {
     UInt64 total = 0;
-    FOR_VECTOR (i, Streams)
+    for (int i = 0; i < Streams.Size(); i++)
     {
       CSubStreamInfo &s = Streams[i];
       s.GlobalOffset = total;
@@ -57,7 +52,7 @@ class COutMultiStream:
   public IOutStream,
   public CMyUnknownImp
 {
-  unsigned _streamIndex; // required stream
+  int _streamIndex; // required stream
   UInt64 _offsetPos; // offset from start of _streamIndex index
   UInt64 _absPos;
   UInt64 _length;

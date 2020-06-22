@@ -2,24 +2,21 @@
 
 #include "StdAfx.h"
 
-#include "../../../C/7zVersion.h"
-
 #include "../../Common/ComTry.h"
 
 #include "../../Windows/PropVariant.h"
 
 #include "../Common/RegisterArc.h"
 
-static const unsigned kNumArcsMax = 64;
-static unsigned g_NumArcs = 0;
-static unsigned g_DefaultArcIndex = 0;
+static const unsigned int kNumArcsMax = 48;
+static unsigned int g_NumArcs = 0;
+static unsigned int g_DefaultArcIndex = 0;
 static const CArcInfo *g_Arcs[kNumArcsMax];
-
-void RegisterArc(const CArcInfo *arcInfo) throw()
+void RegisterArc(const CArcInfo *arcInfo)
 {
   if (g_NumArcs < kNumArcsMax)
   {
-    const char *p = arcInfo->Name;
+    const wchar_t *p = arcInfo->Name;
     if (p[0] == '7' && p[1] == 'z' && p[2] == 0)
       g_DefaultArcIndex = g_NumArcs;
     g_Arcs[g_NumArcs++] = arcInfo;
@@ -27,14 +24,11 @@ void RegisterArc(const CArcInfo *arcInfo) throw()
 }
 
 DEFINE_GUID(CLSID_CArchiveHandler,
-    k_7zip_GUID_Data1,
-    k_7zip_GUID_Data2,
-    k_7zip_GUID_Data3_Common,
-    0x10, 0x00, 0x00, 0x01, 0x10, 0x00, 0x00, 0x00);
+0x23170F69, 0x40C1, 0x278A, 0x10, 0x00, 0x00, 0x01, 0x10, 0x00, 0x00, 0x00);
 
 #define CLS_ARC_ID_ITEM(cls) ((cls).Data4[5])
 
-static inline HRESULT SetPropStrFromBin(const char *s, unsigned size, PROPVARIANT *value)
+static inline HRESULT SetPropString(const char *s, unsigned int size, PROPVARIANT *value)
 {
   if ((value->bstrVal = ::SysAllocStringByteLen(s, size)) != 0)
     value->vt = VT_BSTR;
@@ -43,18 +37,18 @@ static inline HRESULT SetPropStrFromBin(const char *s, unsigned size, PROPVARIAN
 
 static inline HRESULT SetPropGUID(const GUID &guid, PROPVARIANT *value)
 {
-  return SetPropStrFromBin((const char *)&guid, sizeof(guid), value);
+  return SetPropString((const char *)&guid, sizeof(GUID), value);
 }
 
-int FindFormatCalssId(const GUID *clsid)
+int FindFormatCalssId(const GUID *clsID)
 {
-  GUID cls = *clsid;
+  GUID cls = *clsID;
   CLS_ARC_ID_ITEM(cls) = 0;
   if (cls != CLSID_CArchiveHandler)
     return -1;
-  Byte id = CLS_ARC_ID_ITEM(*clsid);
+  Byte id = CLS_ARC_ID_ITEM(*clsID);
   for (unsigned i = 0; i < g_NumArcs; i++)
-    if (g_Arcs[i]->Id == id)
+    if (g_Arcs[i]->ClassId == id)
       return (int)i;
   return -1;
 }
@@ -92,38 +86,37 @@ STDAPI CreateArchiver(const GUID *clsid, const GUID *iid, void **outObject)
 STDAPI GetHandlerProperty2(UInt32 formatIndex, PROPID propID, PROPVARIANT *value)
 {
   COM_TRY_BEGIN
-  NWindows::NCOM::PropVariant_Clear(value);
   if (formatIndex >= g_NumArcs)
     return E_INVALIDARG;
   const CArcInfo &arc = *g_Arcs[formatIndex];
   NWindows::NCOM::CPropVariant prop;
-  switch (propID)
+  switch(propID)
   {
-    case NArchive::NHandlerPropID::kName: prop = arc.Name; break;
-    case NArchive::NHandlerPropID::kClassID:
+    case NArchive::kName:
+      prop = arc.Name;
+      break;
+    case NArchive::kClassID:
     {
       GUID clsId = CLSID_CArchiveHandler;
-      CLS_ARC_ID_ITEM(clsId) = arc.Id;
+      CLS_ARC_ID_ITEM(clsId) = arc.ClassId;
       return SetPropGUID(clsId, value);
     }
-    case NArchive::NHandlerPropID::kExtension: if (arc.Ext) prop = arc.Ext; break;
-    case NArchive::NHandlerPropID::kAddExtension: if (arc.AddExt) prop = arc.AddExt; break;
-    case NArchive::NHandlerPropID::kUpdate: prop = (bool)(arc.CreateOutArchive != NULL); break;
-    case NArchive::NHandlerPropID::kKeepName:   prop = ((arc.Flags & NArcInfoFlags::kKeepName) != 0); break;
-    case NArchive::NHandlerPropID::kAltStreams: prop = ((arc.Flags & NArcInfoFlags::kAltStreams) != 0); break;
-    case NArchive::NHandlerPropID::kNtSecure:   prop = ((arc.Flags & NArcInfoFlags::kNtSecure) != 0); break;
-    case NArchive::NHandlerPropID::kFlags: prop = (UInt32)arc.Flags; break;
-    case NArchive::NHandlerPropID::kSignatureOffset: prop = (UInt32)arc.SignatureOffset; break;
-    // case NArchive::NHandlerPropID::kVersion: prop = (UInt32)MY_VER_MIX; break;
-
-    case NArchive::NHandlerPropID::kSignature:
-      if (arc.SignatureSize != 0 && !arc.IsMultiSignature())
-        return SetPropStrFromBin((const char *)arc.Signature, arc.SignatureSize, value);
+    case NArchive::kExtension:
+      if (arc.Ext != 0)
+        prop = arc.Ext;
       break;
-    case NArchive::NHandlerPropID::kMultiSignature:
-      if (arc.SignatureSize != 0 && arc.IsMultiSignature())
-        return SetPropStrFromBin((const char *)arc.Signature, arc.SignatureSize, value);
+    case NArchive::kAddExtension:
+      if (arc.AddExt != 0)
+        prop = arc.AddExt;
       break;
+    case NArchive::kUpdate:
+      prop = (bool)(arc.CreateOutArchive != 0);
+      break;
+    case NArchive::kKeepName:
+      prop = arc.KeepName;
+      break;
+    case NArchive::kStartSignature:
+      return SetPropString((const char *)arc.Signature, arc.SignatureSize, value);
   }
   prop.Detach(value);
   return S_OK;
@@ -138,14 +131,5 @@ STDAPI GetHandlerProperty(PROPID propID, PROPVARIANT *value)
 STDAPI GetNumberOfFormats(UINT32 *numFormats)
 {
   *numFormats = g_NumArcs;
-  return S_OK;
-}
-
-STDAPI GetIsArc(UInt32 formatIndex, Func_IsArc *isArc)
-{
-  *isArc = NULL;
-  if (formatIndex >= g_NumArcs)
-    return E_INVALIDARG;
-  *isArc = g_Arcs[formatIndex]->IsArc;
   return S_OK;
 }

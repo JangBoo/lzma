@@ -104,10 +104,6 @@ SOURCE=.\LzmaLibExports.c
 # End Group
 # Begin Source File
 
-SOURCE=..\..\7zTypes.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\Alloc.c
 # End Source File
 # Begin Source File
@@ -173,6 +169,10 @@ SOURCE=..\..\Threads.c
 # Begin Source File
 
 SOURCE=..\..\Threads.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Types.h
 # End Source File
 # End Target
 # End Project

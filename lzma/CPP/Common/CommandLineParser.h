@@ -10,53 +10,62 @@ namespace NCommandLineParser {
 bool SplitCommandLine(const UString &src, UString &dest1, UString &dest2);
 void SplitCommandLine(const UString &s, UStringVector &parts);
 
-namespace NSwitchType
-{
+namespace NSwitchType {
   enum EEnum
   {
     kSimple,
-    kMinus,
-    kString,
-    kChar
+    kPostMinus,
+    kLimitedPostString,
+    kUnLimitedPostString,
+    kPostChar
   };
 }
 
 struct CSwitchForm
 {
-  const char *Key;
-  Byte Type;
+  const wchar_t *IDString;
+  NSwitchType::EEnum Type;
   bool Multi;
-  Byte MinLen;
-  // int MaxLen;
-  const char *PostCharSet;
+  int MinLen;
+  int MaxLen;
+  const wchar_t *PostCharSet;
 };
 
 struct CSwitchResult
 {
   bool ThereIs;
   bool WithMinus;
-  int PostCharIndex;
   UStringVector PostStrings;
-  
+  int PostCharIndex;
   CSwitchResult(): ThereIs(false) {};
 };
   
 class CParser
 {
+  int _numSwitches;
   CSwitchResult *_switches;
-
-  bool ParseString(const UString &s, const CSwitchForm *switchForms, unsigned numSwitches);
+  bool ParseString(const UString &s, const CSwitchForm *switchForms);
 public:
   UStringVector NonSwitchStrings;
-  int StopSwitchIndex;  // NonSwitchStrings[StopSwitchIndex+] are after "--"
-  AString ErrorMessage;
-  UString ErrorLine;
-  
-  CParser();
+  CParser(int numSwitches);
   ~CParser();
-  bool ParseStrings(const CSwitchForm *switchForms, unsigned numSwitches, const UStringVector &commandStrings);
-  const CSwitchResult& operator[](unsigned index) const { return _switches[index]; }
+  void ParseStrings(const CSwitchForm *switchForms,
+    const UStringVector &commandStrings);
+  const CSwitchResult& operator[](size_t index) const;
 };
+
+/////////////////////////////////
+// Command parsing procedures
+
+struct CCommandForm
+{
+  const wchar_t *IDString;
+  bool PostStringMode;
+};
+
+// Returns: Index of form and postString; -1, if there is no match
+int ParseCommand(int numCommandForms, const CCommandForm *commandForms,
+    const UString &commandString, UString &postString);
 
 }
 

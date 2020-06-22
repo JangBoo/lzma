@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="UserMacros">
+    <CS_RootDir>$([System.IO.Path]::GetFullPath($(ProjectDir)..\..\))</CS_RootDir>
+    <CS_BinDir>$(CS_RootDir)Bin\$(Platform)\$(Configuration)\</CS_BinDir>
+    <CS_OutDir>$(CS_RootDir)Bin\$(Platform)\$(Configuration)\</CS_OutDir>
+    <CS_IntDir>$(CS_RootDir)Obj\$(Platform)\$(Configuration)\$(ProjectName)\</CS_IntDir>
+    <CS_Suffix>$(CGLMemMajorVersion)$(CS_DebugSuffix)</CS_Suffix>
+    <TargetName>$(ProjectName)$(CS_Suffix)</TargetName>
+    <CS_DllTargetFilename>$(CS_BinDir)$(ProjectName)$(CS_Suffix).dll</CS_DllTargetFilename>
+    <CS_PdbTargetFilename>$(CS_BinDir)$(ProjectName)$(CS_Suffix).pdb</CS_PdbTargetFilename>
+  </PropertyGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <LinkIncremental>false</LinkIncremental>
+    <GenerateManifest>true</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <StringPooling>true</StringPooling>
+      <WarningLevel>Level4</WarningLevel>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <DisableSpecificWarnings>4996;4351;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Culture>0x1009</Culture>
+    </ResourceCompile>
+    <Link>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <ProgramDatabaseFile>$(TargetDir)$(TargetName).pdb</ProgramDatabaseFile>
+      <ImportLibrary>$(OutDir)lib\$(TargetName).lib</ImportLibrary>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <Midl>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <TypeLibraryName>$(TargetDir)$(TargetName).tlb</TypeLibraryName>
+      <HeaderFileName>
+      </HeaderFileName>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="CS_RootDir">
+      <Value>$(CS_RootDir)</Value>
+    </BuildMacro>
+    <BuildMacro Include="CS_BinDir">
+      <Value>$(CS_BinDir)</Value>
+    </BuildMacro>
+    <BuildMacro Include="CS_OutDir">
+      <Value>$(CS_OutDir)</Value>
+    </BuildMacro>
+    <BuildMacro Include="CS_IntDir">
+      <Value>$(CS_IntDir)</Value>
+    </BuildMacro>
+    <BuildMacro Include="CS_Suffix">
+      <Value>$(CS_Suffix)</Value>
+    </BuildMacro>
+    <BuildMacro Include="CS_DllTargetFilename">
+      <Value>$(CS_DllTargetFilename)</Value>
+    </BuildMacro>
+    <BuildMacro Include="CS_PdbTargetFilename">
+      <Value>$(CS_PdbTargetFilename)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

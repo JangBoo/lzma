@@ -9,14 +9,21 @@
 #include "StringConvert.h"
 #include "UTFConvert.h"
 
-#define kFileOpenMode "wt"
+#ifdef _MSC_VER
+// "was declared deprecated" disabling
+#pragma warning(disable : 4996 )
+#endif
+
+static const char kNewLineChar =  '\n';
+
+static const char *kFileOpenMode = "wt";
 
 extern int g_CodePage;
 
-CStdOutStream g_StdOut(stdout);
-CStdOutStream g_StdErr(stderr);
+CStdOutStream  g_StdOut(stdout);
+CStdOutStream  g_StdErr(stderr);
 
-bool CStdOutStream::Open(const char *fileName) throw()
+bool CStdOutStream::Open(const char *fileName)
 {
   Close();
   _stream = fopen(fileName, kFileOpenMode);
@@ -24,7 +31,7 @@ bool CStdOutStream::Open(const char *fileName) throw()
   return _streamIsOpen;
 }
 
-bool CStdOutStream::Close() throw()
+bool CStdOutStream::Close()
 {
   if (!_streamIsOpen)
     return true;
@@ -35,14 +42,31 @@ bool CStdOutStream::Close() throw()
   return true;
 }
 
-bool CStdOutStream::Flush() throw()
+bool CStdOutStream::Flush()
 {
   return (fflush(_stream) == 0);
 }
 
-CStdOutStream & endl(CStdOutStream & outStream) throw()
+CStdOutStream::~CStdOutStream ()
 {
-  return outStream << '\n';
+  Close();
+}
+
+CStdOutStream & CStdOutStream::operator<<(CStdOutStream & (*aFunction)(CStdOutStream  &))
+{
+  (*aFunction)(*this);
+  return *this;
+}
+
+CStdOutStream & endl(CStdOutStream & outStream)
+{
+  return outStream << kNewLineChar;
+}
+
+CStdOutStream & CStdOutStream::operator<<(const char *s)
+{
+  fputs(s, _stream);
+  return *this;
 }
 
 CStdOutStream & CStdOutStream::operator<<(const wchar_t *s)
@@ -54,110 +78,27 @@ CStdOutStream & CStdOutStream::operator<<(const wchar_t *s)
   if (codePage == CP_UTF8)
     ConvertUnicodeToUTF8(s, dest);
   else
-    UnicodeStringToMultiByte2(dest, s, (UINT)codePage);
-  return operator<<((const char *)dest);
+    dest = UnicodeStringToMultiByte(s, (UINT)codePage);
+  *this << (const char *)dest;
+  return *this;
 }
 
-void StdOut_Convert_UString_to_AString(const UString &s, AString &temp)
+CStdOutStream & CStdOutStream::operator<<(char c)
 {
-  int codePage = g_CodePage;
-  if (codePage == -1)
-    codePage = CP_OEMCP;
-  if (codePage == CP_UTF8)
-    ConvertUnicodeToUTF8(s, temp);
-  else
-    UnicodeStringToMultiByte2(temp, s, (UINT)codePage);
+  fputc(c, _stream);
+  return *this;
 }
 
-void CStdOutStream::PrintUString(const UString &s, AString &temp)
+CStdOutStream & CStdOutStream::operator<<(int number)
 {
-  StdOut_Convert_UString_to_AString(s, temp);
-  *this << (const char *)temp;
+  char textString[32];
+  ConvertInt64ToString(number, textString);
+  return operator<<(textString);
 }
 
-
-static const wchar_t kReplaceChar = '_';
-
-void CStdOutStream::Normalize_UString__LF_Allowed(UString &s)
+CStdOutStream & CStdOutStream::operator<<(UInt64 number)
 {
-  unsigned len = s.Len();
-  wchar_t *d = s.GetBuf();
-
-  if (IsTerminalMode)
-    for (unsigned i = 0; i < len; i++)
-    {
-      wchar_t c = d[i];
-      if (c <= 13 && c >= 7 && c != '\n')
-        d[i] = kReplaceChar;
-    }
-}
-
-void CStdOutStream::Normalize_UString(UString &s)
-{
-  unsigned len = s.Len();
-  wchar_t *d = s.GetBuf();
-
-  if (IsTerminalMode)
-    for (unsigned i = 0; i < len; i++)
-    {
-      wchar_t c = d[i];
-      if (c <= 13 && c >= 7)
-        d[i] = kReplaceChar;
-    }
-  else
-    for (unsigned i = 0; i < len; i++)
-    {
-      wchar_t c = d[i];
-      if (c == '\n')
-        d[i] = kReplaceChar;
-    }
-}
-
-void CStdOutStream::NormalizePrint_UString(const UString &s, UString &tempU, AString &tempA)
-{
-  tempU = s;
-  Normalize_UString(tempU);
-  PrintUString(tempU, tempA);
-}
-
-void CStdOutStream::NormalizePrint_UString(const UString &s)
-{
-  NormalizePrint_wstr(s);
-}
-
-void CStdOutStream::NormalizePrint_wstr(const wchar_t *s)
-{
-  UString tempU = s;
-  Normalize_UString(tempU);
-  AString tempA;
-  PrintUString(tempU, tempA);
-}
-
-
-CStdOutStream & CStdOutStream::operator<<(Int32 number) throw()
-{
-  char s[32];
-  ConvertInt64ToString(number, s);
-  return operator<<(s);
-}
-
-CStdOutStream & CStdOutStream::operator<<(Int64 number) throw()
-{
-  char s[32];
-  ConvertInt64ToString(number, s);
-  return operator<<(s);
-}
-
-CStdOutStream & CStdOutStream::operator<<(UInt32 number) throw()
-{
-  char s[16];
-  ConvertUInt32ToString(number, s);
-  return operator<<(s);
-}
-
-CStdOutStream & CStdOutStream::operator<<(UInt64 number) throw()
-{
-  char s[32];
-  ConvertUInt64ToString(number, s);
-  return operator<<(s);
+  char textString[32];
+  ConvertUInt64ToString(number, textString);
+  return operator<<(textString);
 }

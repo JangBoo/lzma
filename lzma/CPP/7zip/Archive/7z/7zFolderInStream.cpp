@@ -7,106 +7,96 @@
 namespace NArchive {
 namespace N7z {
 
+CFolderInStream::CFolderInStream()
+{
+  _inStreamWithHashSpec = new CSequentialInStreamWithCRC;
+  _inStreamWithHash = _inStreamWithHashSpec;
+}
+
 void CFolderInStream::Init(IArchiveUpdateCallback *updateCallback,
-    const UInt32 *indexes, unsigned numFiles)
+    const UInt32 *fileIndices, UInt32 numFiles)
 {
   _updateCallback = updateCallback;
-  _indexes = indexes;
   _numFiles = numFiles;
-  _index = 0;
-  
-  Processed.ClearAndReserve(numFiles);
-  CRCs.ClearAndReserve(numFiles);
-  Sizes.ClearAndReserve(numFiles);
-  
-  _pos = 0;
-  _crc = CRC_INIT_VAL;
-  _size_Defined = false;
-  _size = 0;
-
-  _stream.Release();
+  _fileIndex = 0;
+  _fileIndices = fileIndices;
+  Processed.Clear();
+  CRCs.Clear();
+  Sizes.Clear();
+  _fileIsOpen = false;
+  _currentSizeIsDefined = false;
 }
 
 HRESULT CFolderInStream::OpenStream()
 {
-  _pos = 0;
-  _crc = CRC_INIT_VAL;
-  _size_Defined = false;
-  _size = 0;
-
-  while (_index < _numFiles)
+  _filePos = 0;
+  while (_fileIndex < _numFiles)
   {
     CMyComPtr<ISequentialInStream> stream;
-    HRESULT result = _updateCallback->GetStream(_indexes[_index], &stream);
-    if (result != S_OK)
-    {
-      if (result != S_FALSE)
-        return result;
-    }
-
-    _stream = stream;
-    
+    HRESULT result = _updateCallback->GetStream(_fileIndices[_fileIndex], &stream);
+    if (result != S_OK && result != S_FALSE)
+      return result;
+    _fileIndex++;
+    _inStreamWithHashSpec->SetStream(stream);
+    _inStreamWithHashSpec->Init();
     if (stream)
     {
+      _fileIsOpen = true;
       CMyComPtr<IStreamGetSize> streamGetSize;
       stream.QueryInterface(IID_IStreamGetSize, &streamGetSize);
       if (streamGetSize)
       {
-        if (streamGetSize->GetSize(&_size) == S_OK)
-          _size_Defined = true;
+        RINOK(streamGetSize->GetSize(&_currentSize));
+        _currentSizeIsDefined = true;
       }
       return S_OK;
     }
-    
-    _index++;
     RINOK(_updateCallback->SetOperationResult(NArchive::NUpdate::NOperationResult::kOK));
-    AddFileInfo(result == S_OK);
+    Sizes.Add(0);
+    Processed.Add(result == S_OK);
+    AddDigest();
   }
   return S_OK;
 }
 
-void CFolderInStream::AddFileInfo(bool isProcessed)
+void CFolderInStream::AddDigest()
 {
-  Processed.Add(isProcessed);
-  Sizes.Add(_pos);
-  CRCs.Add(CRC_GET_DIGEST(_crc));
+  CRCs.Add(_inStreamWithHashSpec->GetCRC());
+}
+
+HRESULT CFolderInStream::CloseStream()
+{
+  RINOK(_updateCallback->SetOperationResult(NArchive::NUpdate::NOperationResult::kOK));
+  _inStreamWithHashSpec->ReleaseStream();
+  _fileIsOpen = false;
+  _currentSizeIsDefined = false;
+  Processed.Add(true);
+  Sizes.Add(_filePos);
+  AddDigest();
+  return S_OK;
 }
 
 STDMETHODIMP CFolderInStream::Read(void *data, UInt32 size, UInt32 *processedSize)
 {
-  if (processedSize)
+  if (processedSize != 0)
     *processedSize = 0;
-  while (size != 0)
+  while (size > 0)
   {
-    if (_stream)
+    if (_fileIsOpen)
     {
-      UInt32 cur = size;
-      const UInt32 kMax = (UInt32)1 << 20;
-      if (cur > kMax)
-        cur = kMax;
-      RINOK(_stream->Read(data, cur, &cur));
-      if (cur != 0)
+      UInt32 processed2;
+      RINOK(_inStreamWithHash->Read(data, size, &processed2));
+      if (processed2 == 0)
       {
-        _crc = CrcUpdate(_crc, data, cur);
-        _pos += cur;
-        if (processedSize)
-          *processedSize = cur;
-        return S_OK;
+        RINOK(CloseStream());
+        continue;
       }
-      
-      _stream.Release();
-      _index++;
-      AddFileInfo(true);
-
-      _pos = 0;
-      _crc = CRC_INIT_VAL;
-      _size_Defined = false;
-      _size = 0;
-
-      RINOK(_updateCallback->SetOperationResult(NArchive::NUpdate::NOperationResult::kOK));
+      if (processedSize != 0)
+        *processedSize = processed2;
+      _filePos += processed2;
+      break;
     }
-    
-    if (_index >= _numFiles)
+    if (_fileIndex >= _numFiles)
       break;
     RINOK(OpenStream());
   }
@@ -116,23 +106,17 @@ STDMETHODIMP CFolderInStream::Read(void *data, UInt32 size, UInt32 *processedSiz
 STDMETHODIMP CFolderInStream::GetSubStreamSize(UInt64 subStream, UInt64 *value)
 {
   *value = 0;
-  if (subStream > Sizes.Size())
-    return S_FALSE; // E_FAIL;
-  
-  unsigned index = (unsigned)subStream;
-  if (index < Sizes.Size())
+  int index2 = (int)subStream;
+  if (index2 < 0 || subStream > Sizes.Size())
+    return E_FAIL;
+  if (index2 < Sizes.Size())
   {
-    *value = Sizes[index];
+    *value = Sizes[index2];
     return S_OK;
   }
-  
-  if (!_size_Defined)
-  {
-    *value = _pos;
+  if (!_currentSizeIsDefined)
     return S_FALSE;
-  }
-  
-  *value = (_pos > _size ? _pos : _size);
+  *value = _currentSize;
   return S_OK;
 }
 

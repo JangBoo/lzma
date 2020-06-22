@@ -1,12 +1,6 @@
 EXPORTS
   CreateObject PRIVATE
-
   GetHandlerProperty PRIVATE
   GetNumberOfFormats PRIVATE
   GetHandlerProperty2 PRIVATE
-  GetIsArc PRIVATE
-
-  SetCodecs PRIVATE
-
-  SetLargePageMode PRIVATE
-  SetCaseSensitive PRIVATE
+  CreateObject PRIVATE

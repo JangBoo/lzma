@@ -1,16 +1,14 @@
-// ProgressUtils.cpp
+// ProgressUtils.h
 
 #include "StdAfx.h"
 
 #include "ProgressUtils.h"
 
-CLocalProgress::CLocalProgress():
-    ProgressOffset(0),
-    InSize(0),
-    OutSize(0),
-    SendRatio(true),
-    SendProgress(true)
-  {}
+CLocalProgress::CLocalProgress()
+{
+  ProgressOffset = InSize = OutSize = 0;
+  SendRatio = SendProgress = true;
+}
 
 void CLocalProgress::Init(IProgress *progress, bool inSizeIsMain)
 {
@@ -22,26 +20,19 @@ void CLocalProgress::Init(IProgress *progress, bool inSizeIsMain)
 
 STDMETHODIMP CLocalProgress::SetRatioInfo(const UInt64 *inSize, const UInt64 *outSize)
 {
-  UInt64 inSize2 = InSize;
-  UInt64 outSize2 = OutSize;
-  
+  UInt64 inSizeNew = InSize, outSizeNew = OutSize;
   if (inSize)
-    inSize2 += (*inSize);
+    inSizeNew += (*inSize);
   if (outSize)
-    outSize2 += (*outSize);
-  
+    outSizeNew += (*outSize);
   if (SendRatio && _ratioProgress)
   {
-    RINOK(_ratioProgress->SetRatioInfo(&inSize2, &outSize2));
+    RINOK(_ratioProgress->SetRatioInfo(&inSizeNew, &outSizeNew));
   }
-  
+  inSizeNew += ProgressOffset;
+  outSizeNew += ProgressOffset;
   if (SendProgress)
-  {
-    inSize2 += ProgressOffset;
-    outSize2 += ProgressOffset;
-    return _progress->SetCompleted(_inSizeIsMain ? &inSize2 : &outSize2);
-  }
-  
+    return _progress->SetCompleted(_inSizeIsMain ? &inSizeNew : &outSizeNew);
   return S_OK;
 }
 

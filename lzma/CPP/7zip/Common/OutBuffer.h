@@ -1,7 +1,7 @@
 // OutBuffer.h
 
-#ifndef __OUT_BUFFER_H
-#define __OUT_BUFFER_H
+#ifndef __OUTBUFFER_H
+#define __OUTBUFFER_H
 
 #include "../IStream.h"
 #include "../../Common/MyCom.h"
@@ -17,41 +17,39 @@ struct COutBufferException: public CSystemException
 class COutBuffer
 {
 protected:
-  Byte *_buf;
+  Byte *_buffer;
   UInt32 _pos;
   UInt32 _limitPos;
   UInt32 _streamPos;
-  UInt32 _bufSize;
-  ISequentialOutStream *_stream;
+  UInt32 _bufferSize;
+  CMyComPtr<ISequentialOutStream> _stream;
   UInt64 _processedSize;
-  Byte  *_buf2;
+  Byte  *_buffer2;
   bool _overDict;
 
-  HRESULT FlushPart() throw();
+  HRESULT FlushPart();
 public:
   #ifdef _NO_EXCEPTIONS
   HRESULT ErrorCode;
   #endif
 
-  COutBuffer(): _buf(0), _pos(0), _stream(0), _buf2(0) {}
+  COutBuffer(): _buffer(0), _pos(0), _stream(0), _buffer2(0) {}
   ~COutBuffer() { Free(); }
   
-  bool Create(UInt32 bufSize) throw();
-  void Free() throw();
+  bool Create(UInt32 bufferSize);
+  void Free();
 
-  void SetMemStream(Byte *buf) { _buf2 = buf; }
-  void SetStream(ISequentialOutStream *stream) { _stream = stream; }
-  void Init() throw();
-  HRESULT Flush() throw();
+  void SetMemStream(Byte *buffer) { _buffer2 = buffer; }
+  void SetStream(ISequentialOutStream *stream);
+  void Init();
+  HRESULT Flush();
   void FlushWithCheck();
+  void ReleaseStream() {  _stream.Release(); }
 
   void WriteByte(Byte b)
   {
-    UInt32 pos = _pos;
-    _buf[pos] = b;
-    pos++;
-    _pos = pos;
-    if (pos == _limitPos)
+    _buffer[_pos++] = b;
+    if(_pos == _limitPos)
       FlushWithCheck();
   }
   void WriteBytes(const void *data, size_t size)
@@ -60,7 +58,7 @@ public:
       WriteByte(((const Byte *)data)[i]);
   }
 
-  UInt64 GetProcessedSize() const throw();
+  UInt64 GetProcessedSize() const;
 };
 
 #endif

@@ -3,70 +3,44 @@
 #ifndef __7Z_COMPRESSION_MODE_H
 #define __7Z_COMPRESSION_MODE_H
 
-#include "../../Common/MethodId.h"
+#include "../../../Common/MyString.h"
+
+#include "../../../Windows/PropVariant.h"
+
 #include "../../Common/MethodProps.h"
 
 namespace NArchive {
 namespace N7z {
 
-struct CMethodFull: public CMethodProps
+struct CMethodFull: public CMethod
 {
-  CMethodId Id;
-  UInt32 NumStreams;
-  int CodecIndex;
-
-  CMethodFull(): CodecIndex(-1) {}
-  bool IsSimpleCoder() const { return NumStreams == 1; }
+  UInt32 NumInStreams;
+  UInt32 NumOutStreams;
+  bool IsSimpleCoder() const { return (NumInStreams == 1) && (NumOutStreams == 1); }
 };
 
-struct CBond2
+struct CBind
 {
+  UInt32 InCoder;
+  UInt32 InStream;
   UInt32 OutCoder;
   UInt32 OutStream;
-  UInt32 InCoder;
 };
 
 struct CCompressionMethodMode
 {
-  /*
-    if (Bonds.Empty()), then default bonds must be created
-    if (Filter_was_Inserted)
-    {
-      Methods[0] is filter method
-      Bonds don't contain bonds for filter (these bonds must be created)
-    }
-  */
-
   CObjectVector<CMethodFull> Methods;
-  CRecordVector<CBond2> Bonds;
-
-  bool IsThereBond_to_Coder(unsigned coderIndex) const
-  {
-    FOR_VECTOR(i, Bonds)
-      if (Bonds[i].InCoder == coderIndex)
-        return true;
-    return false;
-  }
-
-  bool DefaultMethod_was_Inserted;
-  bool Filter_was_Inserted;
-
+  CRecordVector<CBind> Binds;
   #ifndef _7ZIP_ST
   UInt32 NumThreads;
-  bool MultiThreadMixer;
   #endif
-  
   bool PasswordIsDefined;
   UString Password;
 
   bool IsEmpty() const { return (Methods.IsEmpty() && !PasswordIsDefined); }
-  CCompressionMethodMode():
-      DefaultMethod_was_Inserted(false),
-      Filter_was_Inserted(false),
-      PasswordIsDefined(false)
+  CCompressionMethodMode(): PasswordIsDefined(false)
       #ifndef _7ZIP_ST
       , NumThreads(1)
-      , MultiThreadMixer(true)
       #endif
   {}
 };

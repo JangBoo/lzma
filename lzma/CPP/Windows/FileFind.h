@@ -1,10 +1,12 @@
 // Windows/FileFind.h
 
-#ifndef __WINDOWS_FILE_FIND_H
-#define __WINDOWS_FILE_FIND_H
+#ifndef __WINDOWS_FILEFIND_H
+#define __WINDOWS_FILEFIND_H
 
 #include "../Common/MyString.h"
+#include "../Common/Types.h"
 #include "Defs.h"
+#include "FileName.h"
 
 namespace NWindows {
 namespace NFile {
@@ -24,13 +26,14 @@ namespace NAttributes
 class CFileInfoBase
 {
   bool MatchesMask(UINT32 mask) const { return ((Attrib & mask) != 0); }
+protected:
+  void Clear();
 public:
   UInt64 Size;
   FILETIME CTime;
   FILETIME ATime;
   FILETIME MTime;
   DWORD Attrib;
-  bool IsAltStream;
   bool IsDevice;
 
   /*
@@ -40,11 +43,6 @@ public:
   UINT32 ReparseTag;
   #endif
   */
-
-  CFileInfoBase() { ClearBase(); }
-  void ClearBase() throw();
-
-  void SetAsDir() { Attrib = FILE_ATTRIBUTE_DIRECTORY; }
 
   bool IsArchived() const { return MatchesMask(FILE_ATTRIBUTE_ARCHIVE); }
   bool IsCompressed() const { return MatchesMask(FILE_ATTRIBUTE_COMPRESSED); }
@@ -62,82 +60,77 @@ public:
 
 struct CFileInfo: public CFileInfoBase
 {
-  FString Name;
-  #if defined(_WIN32) && !defined(UNDER_CE)
-  // FString ShortName;
-  #endif
+  CSysString Name;
 
-  bool IsDots() const throw();
-  bool Find(CFSTR path);
+  bool IsDots() const;
+  bool Find(LPCTSTR wildcard);
 };
 
-class CFindFileBase
+#ifdef _UNICODE
+typedef CFileInfo CFileInfoW;
+#else
+struct CFileInfoW: public CFileInfoBase
 {
-protected:
+  UString Name;
+
+  bool IsDots() const;
+  bool Find(LPCWSTR wildcard);
+};
+#endif
+
+class CFindFile
+{
+  friend class CEnumerator;
   HANDLE _handle;
 public:
   bool IsHandleAllocated() const { return _handle != INVALID_HANDLE_VALUE; }
-  CFindFileBase(): _handle(INVALID_HANDLE_VALUE) {}
-  ~CFindFileBase() { Close(); }
-  bool Close() throw();
-};
-
-class CFindFile: public CFindFileBase
-{
-public:
-  bool FindFirst(CFSTR wildcard, CFileInfo &fileInfo);
+  CFindFile(): _handle(INVALID_HANDLE_VALUE) {}
+  ~CFindFile() {  Close(); }
+  bool FindFirst(LPCTSTR wildcard, CFileInfo &fileInfo);
   bool FindNext(CFileInfo &fileInfo);
+  #ifndef _UNICODE
+  bool FindFirst(LPCWSTR wildcard, CFileInfoW &fileInfo);
+  bool FindNext(CFileInfoW &fileInfo);
+  #endif
+  bool Close();
 };
 
-#if defined(_WIN32) && !defined(UNDER_CE)
-
-struct CStreamInfo
-{
-  UString Name;
-  UInt64 Size;
-
-  UString GetReducedName() const; // returns ":Name"
-  // UString GetReducedName2() const; // returns "Name"
-  bool IsMainStream() const throw();
-};
-
-class CFindStream: public CFindFileBase
-{
-public:
-  bool FindFirst(CFSTR filePath, CStreamInfo &streamInfo);
-  bool FindNext(CStreamInfo &streamInfo);
-};
-
-class CStreamEnumerator
-{
-  CFindStream _find;
-  FString _filePath;
-
-  bool NextAny(CFileInfo &fileInfo);
-public:
-  CStreamEnumerator(const FString &filePath): _filePath(filePath) {}
-  bool Next(CStreamInfo &streamInfo, bool &found);
-};
-
+bool DoesFileExist(LPCTSTR name);
+bool DoesDirExist(LPCTSTR name);
+bool DoesFileOrDirExist(LPCTSTR name);
+#ifndef _UNICODE
+bool DoesFileExist(LPCWSTR name);
+bool DoesDirExist(LPCWSTR name);
+bool DoesFileOrDirExist(LPCWSTR name);
 #endif
-
-bool DoesFileExist(CFSTR name);
-bool DoesDirExist(CFSTR name);
-bool DoesFileOrDirExist(CFSTR name);
-
-DWORD GetFileAttrib(CFSTR path);
 
 class CEnumerator
 {
   CFindFile _findFile;
-  FString _wildcard;
-
+  CSysString _wildcard;
   bool NextAny(CFileInfo &fileInfo);
 public:
-  void SetDirPrefix(const FString &dirPrefix);
+  CEnumerator(): _wildcard(NName::kAnyStringWildcard) {}
+  CEnumerator(const CSysString &wildcard): _wildcard(wildcard) {}
   bool Next(CFileInfo &fileInfo);
   bool Next(CFileInfo &fileInfo, bool &found);
 };
+
+#ifdef _UNICODE
+typedef CEnumerator CEnumeratorW;
+#else
+class CEnumeratorW
+{
+  CFindFile _findFile;
+  UString _wildcard;
+  bool NextAny(CFileInfoW &fileInfo);
+public:
+  CEnumeratorW(): _wildcard(NName::kAnyStringWildcard) {}
+  CEnumeratorW(const UString &wildcard): _wildcard(wildcard) {}
+  bool Next(CFileInfoW &fileInfo);
+  bool Next(CFileInfoW &fileInfo, bool &found);
+};
+#endif
 
 class CFindChangeNotification
 {
@@ -147,15 +140,22 @@ public:
   bool IsHandleAllocated() const { return _handle != INVALID_HANDLE_VALUE && _handle != 0; }
   CFindChangeNotification(): _handle(INVALID_HANDLE_VALUE) {}
   ~CFindChangeNotification() { Close(); }
-  bool Close() throw();
-  HANDLE FindFirst(CFSTR pathName, bool watchSubtree, DWORD notifyFilter);
+  bool Close();
+  HANDLE FindFirst(LPCTSTR pathName, bool watchSubtree, DWORD notifyFilter);
+  #ifndef _UNICODE
+  HANDLE FindFirst(LPCWSTR pathName, bool watchSubtree, DWORD notifyFilter);
+  #endif
   bool FindNext() { return BOOLToBool(::FindNextChangeNotification(_handle)); }
 };
 
 #ifndef UNDER_CE
-bool MyGetLogicalDriveStrings(CObjectVector<FString> &driveStrings);
+bool MyGetLogicalDriveStrings(CSysStringVector &driveStrings);
+#ifndef _UNICODE
+bool MyGetLogicalDriveStrings(UStringVector &driveStrings);
+#endif
 #endif
 
 }}}
 
 #endif
+

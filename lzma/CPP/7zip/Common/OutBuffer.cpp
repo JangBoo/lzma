@@ -6,29 +6,34 @@
 
 #include "OutBuffer.h"
 
-bool COutBuffer::Create(UInt32 bufSize) throw()
+bool COutBuffer::Create(UInt32 bufferSize)
 {
   const UInt32 kMinBlockSize = 1;
-  if (bufSize < kMinBlockSize)
-    bufSize = kMinBlockSize;
-  if (_buf != 0 && _bufSize == bufSize)
+  if (bufferSize < kMinBlockSize)
+    bufferSize = kMinBlockSize;
+  if (_buffer != 0 && _bufferSize == bufferSize)
     return true;
   Free();
-  _bufSize = bufSize;
-  _buf = (Byte *)::MidAlloc(bufSize);
-  return (_buf != 0);
+  _bufferSize = bufferSize;
+  _buffer = (Byte *)::MidAlloc(bufferSize);
+  return (_buffer != 0);
 }
 
-void COutBuffer::Free() throw()
+void COutBuffer::Free()
 {
-  ::MidFree(_buf);
-  _buf = 0;
+  ::MidFree(_buffer);
+  _buffer = 0;
 }
 
-void COutBuffer::Init() throw()
+void COutBuffer::SetStream(ISequentialOutStream *stream)
+{
+  _stream = stream;
+}
+
+void COutBuffer::Init()
 {
   _streamPos = 0;
-  _limitPos = _bufSize;
+  _limitPos = _bufferSize;
   _pos = 0;
   _processedSize = 0;
   _overDict = false;
@@ -37,27 +42,27 @@ void COutBuffer::Init() throw()
   #endif
 }
 
-UInt64 COutBuffer::GetProcessedSize() const throw()
+UInt64 COutBuffer::GetProcessedSize() const
 {
   UInt64 res = _processedSize + _pos - _streamPos;
   if (_streamPos > _pos)
-    res += _bufSize;
+    res += _bufferSize;
   return res;
 }
 
 
-HRESULT COutBuffer::FlushPart() throw()
+HRESULT COutBuffer::FlushPart()
 {
-  // _streamPos < _bufSize
-  UInt32 size = (_streamPos >= _pos) ? (_bufSize - _streamPos) : (_pos - _streamPos);
+  // _streamPos < _bufferSize
+  UInt32 size = (_streamPos >= _pos) ? (_bufferSize - _streamPos) : (_pos - _streamPos);
   HRESULT result = S_OK;
   #ifdef _NO_EXCEPTIONS
   result = ErrorCode;
   #endif
-  if (_buf2 != 0)
+  if (_buffer2 != 0)
   {
-    memcpy(_buf2, _buf + _streamPos, size);
-    _buf2 += size;
+    memmove(_buffer2, _buffer + _streamPos, size);
+    _buffer2 += size;
   }
 
   if (_stream != 0
@@ -67,30 +72,30 @@ HRESULT COutBuffer::FlushPart() throw()
      )
   {
     UInt32 processedSize = 0;
-    result = _stream->Write(_buf + _streamPos, size, &processedSize);
+    result = _stream->Write(_buffer + _streamPos, size, &processedSize);
     size = processedSize;
   }
   _streamPos += size;
-  if (_streamPos == _bufSize)
+  if (_streamPos == _bufferSize)
     _streamPos = 0;
-  if (_pos == _bufSize)
+  if (_pos == _bufferSize)
   {
     _overDict = true;
     _pos = 0;
   }
-  _limitPos = (_streamPos > _pos) ? _streamPos : _bufSize;
+  _limitPos = (_streamPos > _pos) ? _streamPos : _bufferSize;
   _processedSize += size;
   return result;
 }
 
-HRESULT COutBuffer::Flush() throw()
+HRESULT COutBuffer::Flush()
 {
   #ifdef _NO_EXCEPTIONS
   if (ErrorCode != S_OK)
     return ErrorCode;
   #endif
 
-  while (_streamPos != _pos)
+  while(_streamPos != _pos)
   {
     HRESULT result = FlushPart();
     if (result != S_OK)

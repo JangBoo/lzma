@@ -1,10 +1,10 @@
 // ArchiveName.h
 
-#ifndef __ARCHIVE_NAME_H
-#define __ARCHIVE_NAME_H
+#ifndef __ARCHIVENAME_H
+#define __ARCHIVENAME_H
 
-#include "../../../Windows/FileFind.h"
+#include "Common/MyString.h"
 
-UString CreateArchiveName(const UStringVector &paths, const NWindows::NFile::NFind::CFileInfo *fi = NULL);
+UString CreateArchiveName(const UString &srcName, bool fromPrev, bool keepName);
 
 #endif

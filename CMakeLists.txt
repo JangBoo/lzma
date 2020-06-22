@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3 FATAL_ERROR)
 
 project(lzma)
-
+ADD_DEFINITIONS("-Wall -c -O2 -D_7ZIP_ST")
 file(GLOB HDR_FILES
        
     ${PROJECT_SOURCE_DIR}/lzma/C/LzmaDec.h

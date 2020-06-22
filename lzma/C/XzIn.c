@@ -1,19 +1,11 @@
 /* XzIn.c - Xz input
-2018-07-04 : Igor Pavlov : Public domain */
-
-#include "Precomp.h"
+2009-06-19 : Igor Pavlov : Public domain */
 
 #include <string.h>
 
 #include "7zCrc.h"
 #include "CpuArch.h"
 #include "Xz.h"
-
-/*
-#define XZ_FOOTER_SIG_CHECK(p) (memcmp((p), XZ_FOOTER_SIG, XZ_FOOTER_SIG_SIZE) == 0)
-*/
-#define XZ_FOOTER_SIG_CHECK(p) ((p)[0] == XZ_FOOTER_SIG_0 && (p)[1] == XZ_FOOTER_SIG_1)
-
 
 SRes Xz_ReadHeader(CXzStreamFlags *p, ISeqInStream *inStream)
 {
@@ -28,13 +20,13 @@ SRes Xz_ReadHeader(CXzStreamFlags *p, ISeqInStream *inStream)
   { unsigned s = Xz_ReadVarInt(buf + pos, size - pos, res); \
   if (s == 0) return SZ_ERROR_ARCHIVE; pos += s; }
 
-SRes XzBlock_ReadHeader(CXzBlock *p, ISeqInStream *inStream, BoolInt *isIndex, UInt32 *headerSizeRes)
+SRes XzBlock_ReadHeader(CXzBlock *p, ISeqInStream *inStream, Bool *isIndex, UInt32 *headerSizeRes)
 {
   Byte header[XZ_BLOCK_HEADER_SIZE_MAX];
   unsigned headerSize;
   *headerSizeRes = 0;
   RINOK(SeqInStream_ReadByte(inStream, &header[0]));
-  headerSize = (unsigned)header[0];
+  headerSize = ((unsigned)header[0] << 2) + 4;
   if (headerSize == 0)
   {
     *headerSizeRes = 1;
@@ -43,13 +35,12 @@ SRes XzBlock_ReadHeader(CXzBlock *p, ISeqInStream *inStream, BoolInt *isIndex, U
   }
 
   *isIndex = False;
-  headerSize = (headerSize << 2) + 4;
   *headerSizeRes = headerSize;
   RINOK(SeqInStream_Read(inStream, header + 1, headerSize - 1));
   return XzBlock_Parse(p, header);
 }
 
-#define ADD_SIZE_CHECK(size, val) \
+#define ADD_SIZE_CHECH(size, val) \
   { UInt64 newSize = size + (val); if (newSize < size) return XZ_SIZE_OVERFLOW; size = newSize; }
 
 UInt64 Xz_GetUnpackSize(const CXzStream *p)
@@ -57,7 +48,7 @@ UInt64 Xz_GetUnpackSize(const CXzStream *p)
   UInt64 size = 0;
   size_t i;
   for (i = 0; i < p->numBlocks; i++)
-    ADD_SIZE_CHECK(size, p->blocks[i].unpackSize);
+    ADD_SIZE_CHECH(size, p->blocks[i].unpackSize);
   return size;
 }
 
@@ -66,7 +57,7 @@ UInt64 Xz_GetPackSize(const CXzStream *p)
   UInt64 size = 0;
   size_t i;
   for (i = 0; i < p->numBlocks; i++)
-    ADD_SIZE_CHECK(size, (p->blocks[i].totalSize + 3) & ~(UInt64)3);
+    ADD_SIZE_CHECH(size, (p->blocks[i].totalSize + 3) & ~(UInt64)3);
   return size;
 }
 
@@ -77,9 +68,9 @@ SRes XzBlock_ReadFooter(CXzBlock *p, CXzStreamFlags f, ISeqInStream *inStream)
 }
 */
 
-static SRes Xz_ReadIndex2(CXzStream *p, const Byte *buf, size_t size, ISzAllocPtr alloc)
+static SRes Xz_ReadIndex2(CXzStream *p, const Byte *buf, size_t size, ISzAlloc *alloc)
 {
-  size_t numBlocks, pos = 1;
+  size_t i, numBlocks, crcStartPos, pos = 1;
   UInt32 crc;
 
   if (size < 5 || buf[0] != 0)
@@ -98,13 +89,14 @@ static SRes Xz_ReadIndex2(CXzStream *p, const Byte *buf, size_t size, ISzAllocPt
       return SZ_ERROR_ARCHIVE;
   }
   
+  crcStartPos = pos;
   Xz_Free(p, alloc);
   if (numBlocks != 0)
   {
-    size_t i;
     p->numBlocks = numBlocks;
-    p->blocks = (CXzBlockSizes *)ISzAlloc_Alloc(alloc, sizeof(CXzBlockSizes) * numBlocks);
-    if (!p->blocks)
+    p->numBlocksAllocated = numBlocks;
+    p->blocks = alloc->Alloc(alloc, sizeof(CXzBlockSizes) * numBlocks);
+    if (p->blocks == 0)
       return SZ_ERROR_MEM;
     for (i = 0; i < numBlocks; i++)
     {
@@ -121,7 +113,7 @@ static SRes Xz_ReadIndex2(CXzStream *p, const Byte *buf, size_t size, ISzAllocPt
   return (pos == size) ? SZ_OK : SZ_ERROR_ARCHIVE;
 }
 
-static SRes Xz_ReadIndex(CXzStream *p, ILookInStream *stream, UInt64 indexSize, ISzAllocPtr alloc)
+static SRes Xz_ReadIndex(CXzStream *p, ILookInStream *stream, UInt64 indexSize, ISzAlloc *alloc)
 {
   SRes res;
   size_t size;
@@ -131,70 +123,68 @@ static SRes Xz_ReadIndex(CXzStream *p, ILookInStream *stream, UInt64 indexSize, 
   size = (size_t)indexSize;
   if (size != indexSize)
     return SZ_ERROR_UNSUPPORTED;
-  buf = (Byte *)ISzAlloc_Alloc(alloc, size);
-  if (!buf)
+  buf = alloc->Alloc(alloc, size);
+  if (buf == 0)
     return SZ_ERROR_MEM;
   res = LookInStream_Read2(stream, buf, size, SZ_ERROR_UNSUPPORTED);
   if (res == SZ_OK)
     res = Xz_ReadIndex2(p, buf, size, alloc);
-  ISzAlloc_Free(alloc, buf);
+  alloc->Free(alloc, buf);
   return res;
 }
 
-static SRes LookInStream_SeekRead_ForArc(ILookInStream *stream, UInt64 offset, void *buf, size_t size)
+static SRes SeekFromCur(ILookInStream *inStream, Int64 *res)
 {
-  RINOK(LookInStream_SeekTo(stream, offset));
-  return LookInStream_Read(stream, buf, size);
-  /* return LookInStream_Read2(stream, buf, size, SZ_ERROR_NO_ARCHIVE); */
+  return inStream->Seek(inStream, res, SZ_SEEK_CUR);
 }
 
-static SRes Xz_ReadBackward(CXzStream *p, ILookInStream *stream, Int64 *startOffset, ISzAllocPtr alloc)
+static SRes Xz_ReadBackward(CXzStream *p, ILookInStream *stream, Int64 *startOffset, ISzAlloc *alloc)
 {
   UInt64 indexSize;
   Byte buf[XZ_STREAM_FOOTER_SIZE];
-  UInt64 pos = *startOffset;
 
-  if ((pos & 3) != 0 || pos < XZ_STREAM_FOOTER_SIZE)
+  if ((*startOffset & 3) != 0 || *startOffset < XZ_STREAM_FOOTER_SIZE)
     return SZ_ERROR_NO_ARCHIVE;
+  *startOffset = -XZ_STREAM_FOOTER_SIZE;
+  RINOK(SeekFromCur(stream, startOffset));
 
-  pos -= XZ_STREAM_FOOTER_SIZE;
-  RINOK(LookInStream_SeekRead_ForArc(stream, pos, buf, XZ_STREAM_FOOTER_SIZE));
+  RINOK(LookInStream_Read2(stream, buf, XZ_STREAM_FOOTER_SIZE, SZ_ERROR_NO_ARCHIVE));
   
-  if (!XZ_FOOTER_SIG_CHECK(buf + 10))
+  if (memcmp(buf + 10, XZ_FOOTER_SIG, XZ_FOOTER_SIG_SIZE) != 0)
   {
-    UInt32 total = 0;
-    pos += XZ_STREAM_FOOTER_SIZE;
-    
+    Int64 i = 0;
+    *startOffset += XZ_STREAM_FOOTER_SIZE;
     for (;;)
     {
-      size_t i;
+      int j;
+      size_t processedSize;
       #define TEMP_BUF_SIZE (1 << 10)
-      Byte temp[TEMP_BUF_SIZE];
-      
-      i = (pos > TEMP_BUF_SIZE) ? TEMP_BUF_SIZE : (size_t)pos;
-      pos -= i;
-      RINOK(LookInStream_SeekRead_ForArc(stream, pos, temp, i));
-      total += (UInt32)i;
-      for (; i != 0; i--)
-        if (temp[i - 1] != 0)
+      Byte tempBuf[TEMP_BUF_SIZE];
+      if (*startOffset < XZ_STREAM_FOOTER_SIZE || i > (1 << 16))
+        return SZ_ERROR_NO_ARCHIVE;
+      processedSize = (*startOffset > TEMP_BUF_SIZE) ? TEMP_BUF_SIZE : (size_t)*startOffset;
+      i += processedSize;
+      *startOffset = -(Int64)processedSize;
+      RINOK(SeekFromCur(stream, startOffset));
+      RINOK(LookInStream_Read2(stream, tempBuf, processedSize, SZ_ERROR_NO_ARCHIVE));
+      for (j = (int)processedSize; j >= 0; j--)
+        if (tempBuf[j -1] != 0)
           break;
-      if (i != 0)
+      if (j != 0)
       {
-        if ((i & 3) != 0)
+        if ((j & 3) != 0)
           return SZ_ERROR_NO_ARCHIVE;
-        pos += i;
+        *startOffset += j;
+        if (*startOffset < XZ_STREAM_FOOTER_SIZE)
+          return SZ_ERROR_NO_ARCHIVE;
+        *startOffset -= XZ_STREAM_FOOTER_SIZE;
+        RINOK(stream->Seek(stream, startOffset, SZ_SEEK_SET));
+        RINOK(LookInStream_Read2(stream, buf, XZ_STREAM_FOOTER_SIZE, SZ_ERROR_NO_ARCHIVE));
+        if (memcmp(buf + 10, XZ_FOOTER_SIG, XZ_FOOTER_SIG_SIZE) != 0)
+          return SZ_ERROR_NO_ARCHIVE;
         break;
       }
-      if (pos < XZ_STREAM_FOOTER_SIZE || total > (1 << 16))
-        return SZ_ERROR_NO_ARCHIVE;
     }
-    
-    if (pos < XZ_STREAM_FOOTER_SIZE)
-      return SZ_ERROR_NO_ARCHIVE;
-    pos -= XZ_STREAM_FOOTER_SIZE;
-    RINOK(LookInStream_SeekRead_ForArc(stream, pos, buf, XZ_STREAM_FOOTER_SIZE));
-    if (!XZ_FOOTER_SIG_CHECK(buf + 10))
-      return SZ_ERROR_NO_ARCHIVE;
   }
   
   p->flags = (CXzStreamFlags)GetBe16(buf + 8);
@@ -207,22 +197,20 @@ static SRes Xz_ReadBackward(CXzStream *p, ILookInStream *stream, Int64 *startOff
 
   indexSize = ((UInt64)GetUi32(buf + 4) + 1) << 2;
 
-  if (pos < indexSize)
-    return SZ_ERROR_ARCHIVE;
+  *startOffset = -(Int64)(indexSize + XZ_STREAM_FOOTER_SIZE);
+  RINOK(SeekFromCur(stream, startOffset));
 
-  pos -= indexSize;
-  RINOK(LookInStream_SeekTo(stream, pos));
   RINOK(Xz_ReadIndex(p, stream, indexSize, alloc));
 
   {
     UInt64 totalSize = Xz_GetPackSize(p);
-    if (totalSize == XZ_SIZE_OVERFLOW
-        || totalSize >= ((UInt64)1 << 63)
-        || pos < totalSize + XZ_STREAM_HEADER_SIZE)
+    UInt64 sum = XZ_STREAM_HEADER_SIZE + totalSize + indexSize;
+    if (totalSize == XZ_SIZE_OVERFLOW ||
+      sum >= ((UInt64)1 << 63) ||
+      totalSize >= ((UInt64)1 << 63))
       return SZ_ERROR_ARCHIVE;
-    pos -= (totalSize + XZ_STREAM_HEADER_SIZE);
-    RINOK(LookInStream_SeekTo(stream, pos));
-    *startOffset = pos;
+    *startOffset = -(Int64)sum;
+    RINOK(SeekFromCur(stream, startOffset));
   }
   {
     CXzStreamFlags headerFlags;
@@ -230,7 +218,7 @@ static SRes Xz_ReadBackward(CXzStream *p, ILookInStream *stream, Int64 *startOff
     SecToRead_CreateVTable(&secToRead);
     secToRead.realStream = stream;
 
-    RINOK(Xz_ReadHeader(&headerFlags, &secToRead.vt));
+    RINOK(Xz_ReadHeader(&headerFlags, &secToRead.s));
     return (p->flags == headerFlags) ? SZ_OK : SZ_ERROR_ARCHIVE;
   }
 }
@@ -244,12 +232,12 @@ void Xzs_Construct(CXzs *p)
   p->streams = 0;
 }
 
-void Xzs_Free(CXzs *p, ISzAllocPtr alloc)
+void Xzs_Free(CXzs *p, ISzAlloc *alloc)
 {
   size_t i;
   for (i = 0; i < p->num; i++)
     Xz_Free(&p->streams[i], alloc);
-  ISzAlloc_Free(alloc, p->streams);
+  alloc->Free(alloc, p->streams);
   p->num = p->numAllocated = 0;
   p->streams = 0;
 }
@@ -268,7 +256,7 @@ UInt64 Xzs_GetUnpackSize(const CXzs *p)
   UInt64 size = 0;
   size_t i;
   for (i = 0; i < p->num; i++)
-    ADD_SIZE_CHECK(size, Xz_GetUnpackSize(&p->streams[i]));
+    ADD_SIZE_CHECH(size, Xz_GetUnpackSize(&p->streams[i]));
   return size;
 }
 
@@ -278,15 +266,15 @@ UInt64 Xzs_GetPackSize(const CXzs *p)
   UInt64 size = 0;
   size_t i;
   for (i = 0; i < p->num; i++)
-    ADD_SIZE_CHECK(size, Xz_GetTotalSize(&p->streams[i]));
+    ADD_SIZE_CHECH(size, Xz_GetTotalSize(&p->streams[i]));
   return size;
 }
 */
 
-SRes Xzs_ReadBackward(CXzs *p, ILookInStream *stream, Int64 *startOffset, ICompressProgress *progress, ISzAllocPtr alloc)
+SRes Xzs_ReadBackward(CXzs *p, ILookInStream *stream, Int64 *startOffset, ICompressProgress *progress, ISzAlloc *alloc)
 {
   Int64 endOffset = 0;
-  RINOK(ILookInStream_Seek(stream, &endOffset, SZ_SEEK_END));
+  RINOK(stream->Seek(stream, &endOffset, SZ_SEEK_END));
   *startOffset = endOffset;
   for (;;)
   {
@@ -299,20 +287,19 @@ SRes Xzs_ReadBackward(CXzs *p, ILookInStream *stream, Int64 *startOffset, ICompr
     if (p->num == p->numAllocated)
     {
       size_t newNum = p->num + p->num / 4 + 1;
-      Byte *data = (Byte *)ISzAlloc_Alloc(alloc, newNum * sizeof(CXzStream));
-      if (!data)
+      Byte *data = (Byte *)alloc->Alloc(alloc, newNum * sizeof(CXzStream));
+      if (data == 0)
         return SZ_ERROR_MEM;
       p->numAllocated = newNum;
-      if (p->num != 0)
-        memcpy(data, p->streams, p->num * sizeof(CXzStream));
-      ISzAlloc_Free(alloc, p->streams);
+      memcpy(data, p->streams, p->num * sizeof(CXzStream));
+      alloc->Free(alloc, p->streams);
       p->streams = (CXzStream *)data;
     }
     p->streams[p->num++] = st;
     if (*startOffset == 0)
       break;
-    RINOK(LookInStream_SeekTo(stream, *startOffset));
-    if (progress && ICompressProgress_Progress(progress, endOffset - *startOffset, (UInt64)(Int64)-1) != SZ_OK)
+    RINOK(stream->Seek(stream, startOffset, SZ_SEEK_SET));
+    if (progress && progress->Progress(progress, endOffset - *startOffset, (UInt64)(Int64)-1) != SZ_OK)
       return SZ_ERROR_PROGRESS;
   }
   return SZ_OK;
