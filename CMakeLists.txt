@@ -14,7 +14,7 @@ file(GLOB SRC_FILES
 
 
 # Target Definition
-ADD_LIBRARY(lzma SHARED
+ADD_LIBRARY(lzma static
     ${SRC_FILES}
     ${HDR_FILES}
 )
