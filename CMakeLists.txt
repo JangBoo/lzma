@@ -1,46 +1,26 @@
-#=============================================================================
-# lzma cmake configuration
-# Copyright (c) 2005-2014, Coveo Solutions Inc.
-#=============================================================================
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.3 FATAL_ERROR)
-SET(CMAKE_VERBOSE_MAKEFILE off)
+cmake_minimum_required(VERSION 2.8.3 FATAL_ERROR)
 
-#### Project Definition
-PROJECT(lzma)
-ADD_DEFINITIONS("-Wall -c -O2 -D_7ZIP_ST")
+project(lzma)
 
-# Add files and include Paths
-SET(HDR_FILES
-    ../lzma/C/LzmaDec.h
-    ../lzma/C/LzmaEnc.h
-    ../lzma/C/LzFind.h
-    ../lzma/C/Alloc.h
-    ../lzma/C/7z.h
-    ../lzma/C/7zBuf.h
-    ../lzma/C/7zCrc.h
-    ../lzma/C/Lzma2Dec.h
-    ../lzma/C/CpuArch.h
-    ../lzma/C/Bra.h
-    ../lzma/C/Bcj2.h)
-SET(SRC_FILES
-    ../lzma/C/LzmaDec.c
-    ../lzma/C/LzmaEnc.c
-    ../lzma/C/LzFind.c
-    ../lzma/C/Alloc.c
-    ../lzma/C/7zIn.c
-    ../lzma/C/7zDec.c
-    ../lzma/C/7zBuf.c
-    ../lzma/C/7zCrc.c
-    ../lzma/C/7zCrcOpt.c
-    ../lzma/C/7zStream.c
-    ../lzma/C/Lzma2Dec.c
-    ../lzma/C/CpuArch.c
-    ../lzma/C/Bra.c
-    ../lzma/C/Bcj2.c
-    ../lzma/C/Bra86.c)
+file(GLOB HDR_FILES
+        ${PROJECT_SOURCE_DIR}/lzma/C/*.h)
 
-# Target Definition
-ADD_LIBRARY(lzma SHARED
+file(GLOB SRC_FILES
+        ${PROJECT_SOURCE_DIR}/lzma/C/*.c)
+
+add_library(lzma STATIC 
     ${SRC_FILES}
     ${HDR_FILES}
+)
+
+install(
+    TARGETS lzma
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+)
+
+install(
+    FILES ${HDR_FILES}
+    DESTINATION include
 )
