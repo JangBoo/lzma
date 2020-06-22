@@ -1,10 +1,9 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.3 FATAL_ERROR)
-SET(CMAKE_VERBOSE_MAKEFILE off)
+cmake_minimum_required(VERSION 2.8.3 FATAL_ERROR)
 
-#### Project Definition
-PROJECT(lzma)
+project(lzma)
 
-# Add files and include Paths
+ADD_DEFINITIONS("-Wall -c -O2 -D_7ZIP_ST")
+
 
 file(GLOB HDR_FILES
         ${PROJECT_SOURCE_DIR}/lzma/C/*.h)
@@ -12,27 +11,19 @@ file(GLOB HDR_FILES
 file(GLOB SRC_FILES
         ${PROJECT_SOURCE_DIR}/lzma/C/*.c)
 
-
-# Target Definition
-ADD_LIBRARY(lzma static
+add_library(lzma STATIC 
     ${SRC_FILES}
     ${HDR_FILES}
 )
 
-
-# Install library
-#install(TARGETS lzma DESTINATION lib)
-
-# Install library headers
-#install(FILES ${HDR_FILES} DESTINATION include)
-
-
-target_include_directories(lzma
-    PUBLIC
-        lzma/C/
+install(
+    TARGETS lzma
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
 )
 
-include(GNUInstallDirs)
-install(DIRECTORY lzma/C/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/lzma/C FILES_MATCHING PATTERN "*.h")
-install(TARGETS lzma LIBRARY DESTINATION lib)
-INCLUDE(CPack)
+install(
+    FILES ${HDR_FILES}
+    DESTINATION include
+)
